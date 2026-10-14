@@ -1,6 +1,6 @@
 # Plan
 
-Working name: **vibe-design** (to be renamed).
+Name: **Rehearsal** — a prototype is a rehearsal for the real thing.
 
 ## What it is
 
