@@ -21,7 +21,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             appearance={{ elements: { rootBox: "text-sm" } }}
           />
         </div>
-        <UserButton />
+        <div className="flex items-center gap-6">
+          <Link href="/connect" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
+            Connect your agent
+          </Link>
+          <UserButton />
+        </div>
       </header>
       {children}
     </div>
