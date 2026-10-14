@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { OrganizationList } from "@clerk/nextjs";
-import { currentOrg, listProjects } from "@/lib/projects";
+import { redirect } from "next/navigation";
+import { currentOrg, listProjects, locationOf } from "@/lib/projects";
+import { setupProgress } from "@/lib/setup";
 import { timeAgo } from "@/lib/time";
 
 export default async function ProjectsPage() {
@@ -21,6 +23,7 @@ export default async function ProjectsPage() {
   }
 
   const projects = await listProjects(org.orgId);
+  if (projects.length === 0 && !(await setupProgress(org.orgId, org.userId)).complete) redirect("/welcome");
 
   return (
     <main className="mx-auto w-full max-w-[1040px] px-8 pt-24 pb-32">
@@ -52,8 +55,7 @@ export default async function ProjectsPage() {
               >
                 <span className="serif text-2xl">{p.name}</span>
                 <span className="text-sm text-muted">
-                  {p.repoOwner}/{p.repoName}
-                  {p.path ? `/${p.path}` : ""}
+                  {locationOf(p)}
                   <span className="ml-6 text-faint">{timeAgo(p.createdAt)}</span>
                 </span>
               </Link>
