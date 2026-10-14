@@ -5,6 +5,9 @@ import { resolveToken } from "@/lib/agent-tokens";
 import * as github from "@/lib/github";
 import { createGithubProject, getDriveConnection, getGithubConnection, getProject, listProjects, locationOf } from "@/lib/projects";
 import { storeFor } from "@/lib/storage";
+import { listComments } from "@/lib/comments";
+import { comments } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { githubConnections } from "@/db/schema";
 import { encrypt } from "@/lib/crypto";
@@ -21,8 +24,10 @@ A project is a folder of plain HTML/CSS/JS in the team's own GitHub repository. 
 
 Typical flow:
 1. list_projects, then get_project to see the files and the entry file.
-2. read_file for anything you need to change.
-3. publish_version with only the files you changed and a short message in plain language saying what changed for the reviewer, e.g. "Calmer hero: smaller heading, more space".
+2. list_comments to see what reviewers have asked for. Each comment names the element it is pinned to (a CSS path) in the version it was written on.
+3. read_file for anything you need to change.
+4. publish_version with only the files you changed and a short message in plain language saying what changed for the reviewer, e.g. "Calmer hero: smaller heading, more space".
+5. resolve_comment for each comment you addressed.
 
 Keep prototypes self-contained: relative links, no build step.
 
@@ -149,6 +154,53 @@ const handler = createMcpHandler(
         );
         await notifyProject(project.id, "versions");
         return text({ version, message, publishedBy: author.name });
+      },
+    );
+
+    server.registerTool(
+      "list_comments",
+      {
+        title: "List comments",
+        description: "Reviewers' comments on a project, each pinned to an element of the prototype. Open ones first.",
+        inputSchema: z.object({ projectId: z.string(), includeResolved: z.boolean().optional() }),
+      },
+      async ({ projectId, includeResolved }, ctx) => {
+        const { orgId } = who(ctx);
+        const project = await getProject(orgId, projectId);
+        if (!project) return fail("No project with that id in your team.");
+        const rows = (await listComments(project.id)).filter((c) => includeResolved || !c.resolvedAt);
+        return text(
+          rows.map((c) => ({
+            id: c.id,
+            by: c.authorName,
+            at: c.createdAt.toISOString(),
+            element: c.element,
+            elementLabel: c.elementLabel,
+            version: c.version,
+            comment: c.body,
+            resolved: Boolean(c.resolvedAt),
+          })),
+        );
+      },
+    );
+
+    server.registerTool(
+      "resolve_comment",
+      {
+        title: "Resolve comment",
+        description: "Mark a comment as dealt with, usually right after publishing the version that addresses it.",
+        inputSchema: z.object({ commentId: z.string() }),
+      },
+      async ({ commentId }, ctx) => {
+        const { orgId } = who(ctx);
+        const [row] = await getDb()
+          .update(comments)
+          .set({ resolvedAt: new Date() })
+          .where(and(eq(comments.id, commentId), eq(comments.orgId, orgId)))
+          .returning({ projectId: comments.projectId });
+        if (!row) return fail("No comment with that id in your team.");
+        await notifyProject(row.projectId, "comments");
+        return text({ resolved: true });
       },
     );
 
