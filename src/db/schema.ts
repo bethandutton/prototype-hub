@@ -31,5 +31,18 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// A token a person creates so their own agent can act in their team over
+// MCP. Only a hash is kept; the token itself is shown once.
+export const agentTokens = pgTable("agent_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: text("org_id").notNull(),
+  userId: text("user_id").notNull(),
+  name: text("name").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type Project = typeof projects.$inferSelect;
+export type AgentToken = typeof agentTokens.$inferSelect;
 export type GithubConnection = typeof githubConnections.$inferSelect;

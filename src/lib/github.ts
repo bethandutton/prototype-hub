@@ -84,8 +84,9 @@ export async function listVersions(token: string, ref: RepoRef, branch: string, 
 export type FileToCommit = { path: string; content: Buffer };
 
 // Writes a set of files under `dir` as a single commit on `branch`.
-// Existing files under `dir` that are not in the set are removed, so each
-// upload is a complete snapshot of the prototype.
+// In "snapshot" mode, existing files under `dir` that are not in the set are
+// removed, so an upload replaces the whole prototype. In "update" mode only
+// the given files change, which is what an agent editing one file wants.
 export async function commitFiles(
   token: string,
   ref: RepoRef,
@@ -93,6 +94,8 @@ export async function commitFiles(
   dir: string,
   files: FileToCommit[],
   message: string,
+  mode: "snapshot" | "update" = "snapshot",
+  author?: { name: string; email: string },
 ) {
   const gh = client(token);
   const parent = await headSha(token, ref, branch);
@@ -112,9 +115,11 @@ export async function commitFiles(
     });
     tree.push({ path: prefix + file.path, mode: "100644", type: "blob", sha: blob.sha });
   }
-  for (const old of existing) {
-    if (!incoming.has(old.path)) {
-      tree.push({ path: prefix + old.path, mode: "100644", type: "blob", sha: null });
+  if (mode === "snapshot") {
+    for (const old of existing) {
+      if (!incoming.has(old.path)) {
+        tree.push({ path: prefix + old.path, mode: "100644", type: "blob", sha: null });
+      }
     }
   }
 
@@ -128,6 +133,7 @@ export async function commitFiles(
     message,
     tree: newTree.sha,
     parents: [parent],
+    author,
   });
   await gh.rest.git.updateRef({ ...ref, ref: `heads/${branch}`, sha: commit.sha });
   return commit.sha;

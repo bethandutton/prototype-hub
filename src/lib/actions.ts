@@ -4,10 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { githubConnections, projects } from "@/db/schema";
+import { agentTokens, githubConnections, projects } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
+import { hashToken, newToken } from "@/lib/agent-tokens";
 import { encrypt } from "@/lib/crypto";
 import * as github from "@/lib/github";
-import { currentOrg, getProject, githubToken } from "@/lib/projects";
+import { createGithubProject, currentOrg, getProject, githubToken } from "@/lib/projects";
 
 export type ActionResult = { error?: string };
 
@@ -48,53 +50,18 @@ const newProject = z.object({
   path: z.string().trim().optional(),
 });
 
-function slug(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "prototype";
-}
-
 export async function createProject(_prev: ActionResult, form: FormData): Promise<ActionResult> {
   const { userId, orgId } = await requireOrg();
   const parsed = newProject.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const input = parsed.data;
 
-  const token = await githubToken(orgId);
-  let repo: { owner: string; repo: string; branch: string };
-
+  let id: string;
   try {
-    if (input.repoMode === "create") {
-      repo = await github.createRepo(token, `rehearsal-${slug(input.name)}`);
-    } else {
-      const [owner, name] = (input.repoFullName ?? "").split("/");
-      if (!owner || !name) return { error: "Enter the repository as owner/name." };
-      repo = await github.getRepo(token, { owner, repo: name });
-    }
-  } catch {
-    return {
-      error:
-        input.repoMode === "create"
-          ? "GitHub couldn't create the repository. The token may need permission to create repositories."
-          : "That repository couldn't be found with the connected token.",
-    };
+    id = await createGithubProject({ orgId, userId, ...parsed.data });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "The project couldn't be created." };
   }
-
-  const path = (input.path ?? "").replace(/^\/+|\/+$/g, "");
-
-  const [created] = await getDb()
-    .insert(projects)
-    .values({
-      orgId,
-      name: input.name,
-      storage: "github",
-      repoOwner: repo.owner,
-      repoName: repo.repo,
-      branch: repo.branch,
-      path,
-      createdBy: userId,
-    })
-    .returning({ id: projects.id });
-
-  redirect(`/projects/${created.id}`);
+  redirect(`/projects/${id}`);
 }
 
 // Files arrive with their path relative to whatever was dropped. If every
@@ -139,10 +106,28 @@ export async function uploadVersion(projectId: string, form: FormData): Promise<
 
   const entryFile = pickEntry(paths, project.entryFile);
   if (entryFile !== project.entryFile) {
-    const { eq } = await import("drizzle-orm");
     await getDb().update(projects).set({ entryFile }).where(eq(projects.id, project.id));
   }
 
   revalidatePath(`/projects/${project.id}`);
   return {};
+}
+
+export type TokenResult = ActionResult & { token?: string; name?: string };
+
+export async function createAgentToken(_prev: TokenResult, form: FormData): Promise<TokenResult> {
+  const { userId, orgId } = await requireOrg();
+  const name = String(form.get("name") ?? "").trim() || "My agent";
+  const token = newToken();
+  await getDb().insert(agentTokens).values({ orgId, userId, name, tokenHash: hashToken(token) });
+  revalidatePath("/connect");
+  return { token, name };
+}
+
+export async function revokeAgentToken(id: string) {
+  const { userId, orgId } = await requireOrg();
+  await getDb()
+    .delete(agentTokens)
+    .where(and(eq(agentTokens.id, id), eq(agentTokens.orgId, orgId), eq(agentTokens.userId, userId)));
+  revalidatePath("/connect");
 }
