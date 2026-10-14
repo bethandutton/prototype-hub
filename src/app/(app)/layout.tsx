@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import { OrganizationSwitcher } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { isAdmin, isSuspended } from "@/lib/admin";
 import { agentStatus } from "@/lib/agent-status";
 import { setupProgress } from "@/lib/setup";
+import { UserMenu } from "@/components/user-menu";
 
 const statusCopy = {
   none: { label: "Connect your agent", dot: "bg-faint" },
@@ -49,12 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className={`inline-block size-2 rounded-full ${copy.dot}`} aria-hidden />
             {copy.label}
           </Link>
-          {admin && (
-            <Link href="/admin" className="text-muted underline-offset-4 hover:text-ink hover:underline">
-              Admin
-            </Link>
-          )}
-          <UserButton />
+          <UserMenu admin={admin} />
         </div>
       </header>
       {suspended && !admin ? (
