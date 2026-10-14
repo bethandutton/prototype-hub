@@ -3,7 +3,12 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { resolveToken } from "@/lib/agent-tokens";
 import * as github from "@/lib/github";
-import { createGithubProject, getProject, githubToken, listProjects } from "@/lib/projects";
+import { createGithubProject, getDriveConnection, getGithubConnection, getProject, listProjects, locationOf } from "@/lib/projects";
+import { storeFor } from "@/lib/storage";
+import { getDb } from "@/db";
+import { githubConnections } from "@/db/schema";
+import { encrypt } from "@/lib/crypto";
+import { notifyProject } from "@/lib/realtime-server";
 
 // Rehearsal's MCP server. A person's agent connects with a token made on the
 // "Connect your agent" page, and acts inside that person's team.
@@ -19,7 +24,9 @@ Typical flow:
 2. read_file for anything you need to change.
 3. publish_version with only the files you changed and a short message in plain language saying what changed for the reviewer, e.g. "Calmer hero: smaller heading, more space".
 
-Keep prototypes self-contained: relative links, no build step.`;
+Keep prototypes self-contained: relative links, no build step.
+
+If a tool says GitHub is not connected for the team, and the GitHub CLI on this machine is signed in, run \`gh auth token\` and pass the result to connect_github. Otherwise ask the person to connect GitHub in Rehearsal.`;
 
 function text(data: unknown) {
   return { content: [{ type: "text" as const, text: typeof data === "string" ? data : JSON.stringify(data, null, 2) }] };
@@ -48,13 +55,7 @@ const handler = createMcpHandler(
         const { orgId } = who(ctx);
         const rows = await listProjects(orgId);
         return text(
-          rows.map((p) => ({
-            id: p.id,
-            name: p.name,
-            repository: `${p.repoOwner}/${p.repoName}`,
-            folder: p.path || "(root)",
-            entryFile: p.entryFile,
-          })),
+          rows.map((p) => ({ id: p.id, name: p.name, storage: p.storage, location: locationOf(p), entryFile: p.entryFile })),
         );
       },
     );
@@ -70,16 +71,14 @@ const handler = createMcpHandler(
         const { orgId } = who(ctx);
         const project = await getProject(orgId, projectId);
         if (!project) return fail("No project with that id in your team.");
-        const token = await githubToken(orgId);
-        const repo = { owner: project.repoOwner, repo: project.repoName };
-        const head = await github.headSha(token, repo, project.branch);
-        const files = await github.listFiles(token, repo, head, project.path);
+        const store = await storeFor(project);
+        const head = await store.head();
+        const files = await store.listFiles(head);
         return text({
           id: project.id,
           name: project.name,
-          repository: `${project.repoOwner}/${project.repoName}`,
-          branch: project.branch,
-          folder: project.path || "(root)",
+          storage: project.storage,
+          location: locationOf(project),
           entryFile: project.entryFile,
           latestVersion: head,
           files: files.map((f) => ({ path: f.path, bytes: f.size })),
@@ -98,14 +97,7 @@ const handler = createMcpHandler(
         const { orgId } = who(ctx);
         const project = await getProject(orgId, projectId);
         if (!project) return fail("No project with that id in your team.");
-        const token = await githubToken(orgId);
-        const versions = await github.listVersions(
-          token,
-          { owner: project.repoOwner, repo: project.repoName },
-          project.branch,
-          project.path,
-        );
-        return text(versions);
+        return text(await (await storeFor(project)).listVersions());
       },
     );
 
@@ -124,12 +116,9 @@ const handler = createMcpHandler(
         const { orgId } = who(ctx);
         const project = await getProject(orgId, projectId);
         if (!project) return fail("No project with that id in your team.");
-        const token = await githubToken(orgId);
-        const repo = { owner: project.repoOwner, repo: project.repoName };
-        const sha = version ?? (await github.headSha(token, repo, project.branch));
-        const file = (await github.listFiles(token, repo, sha, project.path)).find((f) => f.path === path);
-        if (!file) return fail(`No file at ${path} in that version.`);
-        return text((await github.readBlob(token, repo, file.sha)).toString("utf8"));
+        const content = await (await storeFor(project)).readFile(version ?? "head", path);
+        if (!content) return fail(`No file at ${path} in that version.`);
+        return text(content.toString("utf8"));
       },
     );
 
@@ -150,19 +139,67 @@ const handler = createMcpHandler(
         const { orgId, userId } = who(ctx);
         const project = await getProject(orgId, projectId);
         if (!project) return fail("No project with that id in your team.");
-        const token = await githubToken(orgId);
         const author = await actingUser(userId);
-        const sha = await github.commitFiles(
-          token,
-          { owner: project.repoOwner, repo: project.repoName },
-          project.branch,
-          project.path,
+        const store = await storeFor(project);
+        const version = await store.write(
           files.map((f) => ({ path: f.path.replace(/^\/+/, ""), content: Buffer.from(f.content, "utf8") })),
           message,
           replaceAll ? "snapshot" : "update",
           author,
         );
-        return text({ version: sha, message, publishedBy: author.name });
+        await notifyProject(project.id, "versions");
+        return text({ version, message, publishedBy: author.name });
+      },
+    );
+
+    server.registerTool(
+      "connect_github",
+      {
+        title: "Connect GitHub",
+        description:
+          "Connect the team's GitHub account so projects can be stored there. Pass a GitHub token with repo access, for example the output of `gh auth token`.",
+        inputSchema: z.object({ token: z.string().min(1) }),
+      },
+      async ({ token }, ctx) => {
+        const { orgId, userId } = who(ctx);
+        let login: string;
+        try {
+          ({ login } = await github.whoAmI(token));
+        } catch {
+          return fail("GitHub didn't accept that token.");
+        }
+        await getDb()
+          .insert(githubConnections)
+          .values({ orgId, connectedBy: userId, login, tokenCiphertext: encrypt(token) })
+          .onConflictDoUpdate({
+            target: githubConnections.orgId,
+            set: { connectedBy: userId, login, tokenCiphertext: encrypt(token) },
+          });
+        return text({ connected: true, login });
+      },
+    );
+
+    server.registerTool(
+      "status",
+      {
+        title: "Status",
+        description: "Whether the team has GitHub connected and how many projects exist.",
+        inputSchema: z.object({}),
+      },
+      async (_args, ctx) => {
+        const { orgId } = who(ctx);
+        const [connection, driveConnection, rows] = await Promise.all([
+          getGithubConnection(orgId),
+          getDriveConnection(orgId),
+          listProjects(orgId),
+        ]);
+        return text({
+          githubConnected: Boolean(connection),
+          githubLogin: connection?.login ?? null,
+          googleDriveConnected: Boolean(driveConnection),
+          googleDriveAccount: driveConnection?.email ?? null,
+          projects: rows.length,
+        });
       },
     );
 

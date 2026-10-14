@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createGrant } from "@/lib/grant";
-import * as github from "@/lib/github";
-import { currentOrg, getProject, githubToken } from "@/lib/projects";
+import { currentOrg, getProject, locationOf } from "@/lib/projects";
+import { storeFor } from "@/lib/storage";
 import { timeAgo } from "@/lib/time";
 import { PrototypeFrame } from "@/components/prototype-frame";
 import { UploadDropzone } from "@/components/upload-dropzone";
@@ -18,12 +18,11 @@ export default async function ProjectPage({ params, searchParams }: Props) {
   const project = await getProject(org.orgId, id);
   if (!project) notFound();
 
-  const token = await githubToken(org.orgId);
-  const repo = { owner: project.repoOwner, repo: project.repoName };
-  const versions = await github.listVersions(token, repo, project.branch, project.path);
-  const latest = versions[0]?.sha;
+  const store = await storeFor(project);
+  const versions = await store.listVersions();
+  const latest = versions[0]?.id;
   const current = v ?? latest;
-  const files = current ? await github.listFiles(token, repo, current, project.path) : [];
+  const files = current ? await store.listFiles(current) : [];
   const hasEntry = files.some((f) => f.path === project.entryFile);
   const src = hasEntry && current ? `/view/${createGrant(project.id, org.orgId)}/${current}/${project.entryFile}` : null;
 
@@ -38,10 +37,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
               <h2 className="text-3xl">Nothing on stage yet.</h2>
               <p className="mt-3 text-muted">
                 Drop an HTML file or a whole folder here, or ask your agent to publish one to{" "}
-                <span className="font-mono text-sm">
-                  {project.repoOwner}/{project.repoName}
-                  {project.path ? `/${project.path}` : ""}
-                </span>
+                <span className="font-mono text-sm">{locationOf(project)}</span>
                 .
               </p>
               <div className="mt-8">
@@ -58,10 +54,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
             All projects
           </Link>
           <h1 className="mt-2 text-2xl leading-tight">{project.name}</h1>
-          <p className="mt-1 truncate font-mono text-xs text-muted">
-            {project.repoOwner}/{project.repoName}
-            {project.path ? `/${project.path}` : ""}
-          </p>
+          <p className="mt-1 truncate font-mono text-xs text-muted">{locationOf(project)}</p>
         </div>
 
         {src && (
@@ -77,11 +70,11 @@ export default async function ProjectPage({ params, searchParams }: Props) {
           ) : (
             <ol className="mt-2">
               {versions.map((ver, i) => {
-                const active = ver.sha === current;
+                const active = ver.id === current;
                 return (
-                  <li key={ver.sha}>
+                  <li key={ver.id}>
                     <Link
-                      href={i === 0 ? `/projects/${project.id}` : `/projects/${project.id}?v=${ver.sha}`}
+                      href={i === 0 ? `/projects/${project.id}` : `/projects/${project.id}?v=${ver.id}`}
                       className={`-mx-2 block rounded px-2 py-2 transition-colors hover:bg-stage ${active ? "bg-stage" : ""}`}
                     >
                       <span className="flex items-baseline justify-between gap-3 text-sm">

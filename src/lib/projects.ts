@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { githubConnections, projects, type Project } from "@/db/schema";
+import { driveConnections, githubConnections, projects, type Project } from "@/db/schema";
+import * as drive from "@/lib/google-drive";
 import { decrypt } from "@/lib/crypto";
 import * as github from "@/lib/github";
 
@@ -35,6 +36,41 @@ export async function githubToken(orgId: string) {
   const connection = await getGithubConnection(orgId);
   if (!connection) throw new Error("GitHub is not connected for this organisation");
   return decrypt(connection.tokenCiphertext);
+}
+
+export async function getDriveConnection(orgId: string) {
+  const rows = await getDb().select().from(driveConnections).where(eq(driveConnections.orgId, orgId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function driveAccessToken(orgId: string) {
+  const connection = await getDriveConnection(orgId);
+  if (!connection) throw new Error("Google Drive is not connected for this organisation");
+  return drive.accessToken(decrypt(connection.refreshTokenCiphertext));
+}
+
+// Where a project's files are, in words people recognise.
+export function locationOf(project: Project) {
+  if (project.storage === "google-drive") return "Google Drive";
+  return `${project.repoOwner}/${project.repoName}${project.path ? `/${project.path}` : ""}`;
+}
+
+// Creates a project that points at a Drive folder the person pasted a link to.
+export async function createDriveProject(input: { orgId: string; userId: string; name: string; folder: string }) {
+  const token = await driveAccessToken(input.orgId);
+  const id = drive.folderIdFrom(input.folder);
+  if (!id) throw new Error("Paste the link to a Google Drive folder.");
+  let folder: { id: string; name: string };
+  try {
+    folder = await drive.getFolder(token, id);
+  } catch {
+    throw new Error("That folder couldn't be opened with the connected Google account. Check the link and that the account can see it.");
+  }
+  const [created] = await getDb()
+    .insert(projects)
+    .values({ orgId: input.orgId, name: input.name, storage: "google-drive", driveFolderId: folder.id, createdBy: input.userId })
+    .returning({ id: projects.id });
+  return created.id;
 }
 
 function slug(name: string) {

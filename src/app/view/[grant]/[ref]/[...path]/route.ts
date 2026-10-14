@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyGrant } from "@/lib/grant";
-import * as github from "@/lib/github";
-import { getProject, githubToken } from "@/lib/projects";
+import { getProject } from "@/lib/projects";
+import { storeFor } from "@/lib/storage";
 
 const types: Record<string, string> = {
   html: "text/html; charset=utf-8",
@@ -48,18 +48,14 @@ export async function GET(_req: Request, { params }: Params) {
   const project = await getProject(grant.orgId, grant.projectId);
   if (!project) return new NextResponse("Not found", { status: 404 });
 
-  const ghToken = await githubToken(grant.orgId);
-  const repo = { owner: project.repoOwner, repo: project.repoName };
-  const sha = ref === "head" ? await github.headSha(ghToken, repo, project.branch) : ref;
-
+  const store = await storeFor(project);
   const filePath = path.join("/");
-  const files = await github.listFiles(ghToken, repo, sha, project.path);
-  const file = files.find((f) => f.path === filePath);
-  if (!file) return new NextResponse("Not found", { status: 404 });
+  const found = await store.readFile(ref, filePath);
+  if (!found) return new NextResponse("Not found", { status: 404 });
 
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
   const type = types[ext] ?? "application/octet-stream";
-  let body: Buffer | string = await github.readBlob(ghToken, repo, file.sha);
+  let body: Buffer | string = found;
   if (ext === "html" || ext === "htm") body = withHelper(body.toString("utf8"));
 
   return new NextResponse(body as BodyInit, {
