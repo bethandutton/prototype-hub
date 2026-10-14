@@ -16,6 +16,18 @@ Figma-style collaborative review for working HTML prototypes, where the editing 
 - A chat panel per prototype, shared by people and agents.
 - Multi-organisation product from day one: organisations, members, roles.
 
+## Design brief
+
+Rehearsal should not look vibe-coded. It should feel sleek, quiet and a bit different, with a lot of white space. The prototype on stage is the point; the app around it stays out of the way.
+
+- **Colour.** Pure white page, true black ink. Three greys only: muted `#6f6f6c` for secondary text, faint `#a8a8a4` for hints, hairline `#e6e6e2` for rules. The stage behind a prototype is `#f4f4f2`. There is no accent colour in the chrome. Colour is reserved for people: each person gets one from the palette in `src/lib/people.ts` and it follows them everywhere (avatar, cursor, comment pins).
+- **Type.** Instrument Serif for titles (h1, h2, and anything marked `.serif`), Instrument Sans for everything else. One size scale, sentence case throughout. No all-caps labels, no single italic or coloured word in a headline, no middle-dot meta strings.
+- **Layout.** Rows and hairlines, not cards. Generous margins, content left-aligned on a single column of about 1040px. Lists are tables of rows with a hairline between them. Nothing is boxed unless it needs to be clicked.
+- **Chrome.** One slim top bar: name, team switcher, set-up progress, agent status, user menu. Admin and settings live inside the user menu, not in the bar. Links are plain text that underline on hover.
+- **Motion.** Only in response to something the person did, or to show something changed (a new comment arriving, a version landing). No entrance animations.
+- **Words.** Plain verbs, short sentences, no filler. Buttons say what happens: "Copy for your agent", "Put it on stage", "Resolve". Empty states tell you what to do next. Nothing apologises.
+- **The prototype itself** is never styled by us. It sits on the stage at the chosen width, in its own frame, with our overlays (hover outline, pins, cursors, "being edited") drawn lightly on top.
+
 ## The core loop
 
 1. Someone highlights a section in the browser and leaves an instruction.
