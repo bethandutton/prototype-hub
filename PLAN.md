@@ -29,7 +29,7 @@ Figma-style collaborative review for working HTML prototypes, where the editing 
 |---|---|
 | 1. Foundations (done) | Sign in, teams, projects, storage picker, upload an HTML file or folder, view it live, hover readout, version history |
 | 2. Agent connection (MCP) (done) | A person creates a token on "Connect your agent"; their agent lists projects, reads files, sees versions, publishes new ones credited to them, creates projects |
-| 3. Live together | Multiplayer cursors, presence, comments pinned to elements |
+| 3. Live together (done) | Who's here, live cursors inside the prototype, comments pinned to elements with resolve, live refresh when agents publish; agents read and resolve comments over MCP |
 | 4. Select and delegate | Select a section in the browser and send it to your connected agent; "being edited" overlays; section locks |
 | 5. Variants | Section options A/B/C, switch in place, vote, pick a winner |
 | 6. Chat | Chat panel per prototype that agents can also read and post to |
@@ -43,6 +43,6 @@ Also shipped on 14 Oct 2026: a step-by-step set-up page (storage, agent, first p
 - **Web app:** Next.js (App Router) on Vercel.
 - **Sign in and organisations:** Clerk. The same identity is used by agents over MCP.
 - **Data:** Postgres (Neon) for projects, storage connections, comments, variants, chat. No file storage of our own until Rehearsal Cloud.
-- **Live presence:** Liveblocks for cursors, presence and element locks.
+- **Live presence:** Supabase Realtime (Marketplace, env prefix `SUPA_`) for presence, cursor broadcast and "something changed" nudges. Comments live in Neon.
 - **Prototype rendering:** a sandboxed iframe, served through short-lived signed links (`/view/<grant>/<commit>/<file>`) because the sandbox has no cookies. A small helper script inside the frame gives every element a stable id, reports hovers and selections to the app, and draws overlays (comments, cursors, "being edited"). Uploaded code never touches the app itself.
 - **Agent connection:** an MCP server at `/api/mcp` (Streamable HTTP). Agents authenticate with a personal token made in the app (hashed at rest); a "Sign in with Rehearsal" OAuth flow can replace this later. Tools today: list_projects, get_project, list_versions, read_file, publish_version, create_project. Later: comments and selections, variants, chat, section locks, and the browser pushing a task to a connected agent.
