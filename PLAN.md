@@ -1,0 +1,45 @@
+# Plan
+
+Working name: **vibe-design** (to be renamed).
+
+## What it is
+
+Figma-style collaborative review for working HTML prototypes, where the editing is done by each person's own AI agent.
+
+- A prototype is a plain HTML/CSS/JS file or folder (the same format as a Claude artifact). It is uploaded by dragging it into the web app or by an agent over MCP.
+- The web app is for **viewing, commenting, comparing and chatting**. Nobody edits code in the browser.
+- Every person connects **their own agent** (Claude Code, Cursor, Codex, …) on their own subscription. From the browser they select elements and send instructions; the agent makes the change and publishes a new version.
+- Live presence like Figma: other people's cursors, who is here, and a "being edited" outline on any section an agent is currently working on.
+- Comments are pinned to specific elements, not to screen coordinates.
+- Variants: highlight a section and ask for options A/B/C. Reviewers switch between them in place, vote and pick a winner. (Whole-page alternatives are just separate versions.)
+- A chat panel per prototype, shared by people and agents.
+- Multi-organisation product from day one: organisations, members, roles.
+
+## The core loop
+
+1. Someone highlights a section in the browser and leaves an instruction.
+2. Their agent receives it over MCP: the exact element, its code and the comments.
+3. While the agent works, the section shows as "being edited" and is locked so a second agent cannot clash with it.
+4. The agent publishes a new version or variant; everyone's view updates live.
+
+## Phases
+
+| Phase | What you get |
+|---|---|
+| 1. Foundations | Sign in, organisations, projects, upload an HTML file or folder, view it live, version history |
+| 2. Agent connection (MCP) | An agent signs in, lists projects, reads files, publishes new versions |
+| 3. Live together | Multiplayer cursors, presence, comments pinned to elements |
+| 4. Select and delegate | Select a section in the browser and send it to your connected agent; "being edited" overlays; section locks |
+| 5. Variants | Section options A/B/C, switch in place, vote, pick a winner |
+| 6. Chat | Chat panel per prototype that agents can also read and post to |
+
+Each phase is usable on its own.
+
+## Technical shape
+
+- **Web app:** Next.js (App Router) on Vercel.
+- **Sign in and organisations:** Clerk. The same identity is used by agents over MCP.
+- **Data:** Postgres for organisations, projects, versions, comments, variants, chat. Blob storage for prototype files.
+- **Live presence:** Liveblocks for cursors, presence and element locks.
+- **Prototype rendering:** a sandboxed iframe. A small helper script inside the frame gives every element a stable id, reports hovers and selections to the app, and draws overlays (comments, cursors, "being edited"). Uploaded code never touches the app itself.
+- **Agent connection:** an MCP server exposed by the app. Tools cover listing projects, reading files, reading comments and selections, publishing versions and variants, posting to chat, and claiming/releasing a section lock. The browser can push a task to a connected agent.
