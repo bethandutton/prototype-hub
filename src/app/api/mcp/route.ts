@@ -26,7 +26,7 @@ Typical flow:
 1. list_projects, then get_project to see the files and the entry file.
 2. list_comments to see what reviewers have asked for. Each comment names the element it is pinned to (a CSS path) in the version it was written on.
 3. read_file for anything you need to change.
-4. publish_version with only the files you changed and a short message in plain language saying what changed for the reviewer, e.g. "Calmer hero: smaller heading, more space".
+4. publish_version with only the files you changed, a short message saying what changed, and a why: the reasoning and which comment or request it answers. Reviewers read both, so write them in plain language, e.g. message "Calmer hero: smaller heading, more space", why "Sam's comment said the heading shouted. Dropped it two sizes and let the subtitle breathe so the price is the first thing you read."
 5. resolve_comment for each comment you addressed.
 
 Keep prototypes self-contained: relative links, no build step.
@@ -135,12 +135,16 @@ const handler = createMcpHandler(
           "Save changed files as a new version everyone can see. Send only the files you changed; the rest stay as they are. Set replaceAll to true to make these files the entire prototype.",
         inputSchema: z.object({
           projectId: z.string(),
-          message: z.string().describe("What changed, for the reviewers, in plain language"),
+          message: z.string().describe("What changed, for the reviewers, in plain language. One line."),
+          why: z
+            .string()
+            .min(1)
+            .describe("Why you made this change: the reasoning, and which comment or request it answers. A sentence or two reviewers will read."),
           files: z.array(z.object({ path: z.string(), content: z.string() })).min(1),
           replaceAll: z.boolean().optional(),
         }),
       },
-      async ({ projectId, message, files, replaceAll }, ctx) => {
+      async ({ projectId, message, why, files, replaceAll }, ctx) => {
         const { orgId, userId } = who(ctx);
         const project = await getProject(orgId, projectId);
         if (!project) return fail("No project with that id in your team.");
@@ -148,12 +152,12 @@ const handler = createMcpHandler(
         const store = await storeFor(project);
         const version = await store.write(
           files.map((f) => ({ path: f.path.replace(/^\/+/, ""), content: Buffer.from(f.content, "utf8") })),
-          message,
+          `${message.trim()}\n\n${why.trim()}`,
           replaceAll ? "snapshot" : "update",
           author,
         );
         await notifyProject(project.id, "versions");
-        return text({ version, message, publishedBy: author.name });
+        return text({ version, message, why, publishedBy: author.name });
       },
     );
 

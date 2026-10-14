@@ -75,7 +75,7 @@ export async function listVersions(token: string, ref: RepoRef, branch: string, 
   });
   return data.map<Version>((c) => ({
     sha: c.sha,
-    message: c.commit.message.split("\n")[0],
+    message: c.commit.message,
     author: c.commit.author?.name ?? c.author?.login ?? "Unknown",
     date: c.commit.author?.date ?? "",
   }));

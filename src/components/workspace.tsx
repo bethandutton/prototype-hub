@@ -262,6 +262,8 @@ export function Workspace({ project, src, versions, currentVersion, comments, me
               <ol className="mt-2">
                 {versions.map((ver, i) => {
                   const active = ver.id === currentVersion;
+                  const [title, ...rest] = ver.message.split("\n");
+                  const why = rest.join("\n").trim();
                   return (
                     <li key={ver.id}>
                       <Link
@@ -269,12 +271,13 @@ export function Workspace({ project, src, versions, currentVersion, comments, me
                         className={`-mx-2 block rounded px-2 py-2 transition-colors hover:bg-stage ${active ? "bg-stage" : ""}`}
                       >
                         <span className="flex items-baseline justify-between gap-3 text-sm">
-                          <span className="truncate">{ver.message}</span>
+                          <span className="truncate">{title}</span>
                           {i === 0 && <span className="shrink-0 text-xs text-muted">Latest</span>}
                         </span>
                         <span className="block text-xs text-muted">
                           {ver.author}, {timeAgo(ver.date)}
                         </span>
+                        {active && why && <span className="mt-1.5 block text-xs leading-relaxed text-muted">{why}</span>}
                       </Link>
                     </li>
                   );
