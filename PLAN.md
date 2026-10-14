@@ -36,6 +36,8 @@ Figma-style collaborative review for working HTML prototypes, where the editing 
 
 Each phase is usable on its own.
 
+Also shipped on 14 Oct 2026: a step-by-step set-up page (storage, agent, first prototype), a one-paste agent connection, an admin area (teams, people, plans free/pro/enterprise, revoke access; admins are listed in `ADMIN_EMAILS`), and Google Drive as a second storage option. Drive needs a Google OAuth client (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) before it appears as available.
+
 ## Technical shape
 
 - **Web app:** Next.js (App Router) on Vercel.
