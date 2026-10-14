@@ -76,3 +76,55 @@ export function useProjectRoom({ projectId, me, supabaseUrl, supabaseKey, onEven
 
   return { peers, sendCursor };
 }
+
+// Everyone in a team shares a second, lighter room that only says which
+// project each person is looking at, so the project list can show who is
+// where. Returns the people on each project, not counting yourself.
+export function useTeamPresence({
+  orgId,
+  me,
+  projectId,
+  supabaseUrl,
+  supabaseKey,
+}: {
+  orgId: string | null;
+  me: Person;
+  projectId: string | null;
+  supabaseUrl: string | null;
+  supabaseKey: string | null;
+}) {
+  const [onProject, setOnProject] = useState<Record<string, Person[]>>({});
+  const channel = useRef<RealtimeChannel | null>(null);
+
+  useEffect(() => {
+    if (!orgId || !supabaseUrl || !supabaseKey) return;
+    const client = createClient(supabaseUrl, supabaseKey);
+    const room = client.channel(`team:${orgId}`, { config: { presence: { key: me.id } } });
+    channel.current = room;
+    room
+      .on("presence", { event: "sync" }, () => {
+        const next: Record<string, Person[]> = {};
+        for (const [key, metas] of Object.entries(room.presenceState<Person & { projectId: string | null }>())) {
+          const meta = metas[0];
+          if (!meta || key === me.id || !meta.projectId) continue;
+          (next[meta.projectId] ??= []).push({ id: meta.id, name: meta.name, colour: meta.colour });
+        }
+        setOnProject(next);
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") room.track({ ...me, projectId });
+      });
+    return () => {
+      channel.current = null;
+      client.removeChannel(room);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, me.id, me.name, me.colour, supabaseUrl, supabaseKey]);
+
+  useEffect(() => {
+    channel.current?.track({ ...me, projectId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  return onProject;
+}
