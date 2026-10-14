@@ -17,7 +17,7 @@ export default async function Home() {
 
       <section className="flex flex-1 flex-col justify-center pb-32">
         <h1 className="max-w-[18ch] text-[clamp(2.5rem,6vw,5rem)] leading-[1.02]">
-          Review working prototypes <em>together</em>, edited by your own agent.
+          Review working prototypes together, edited by your own agent.
         </h1>
         <p className="mt-8 max-w-[52ch] text-lg text-muted">
           Drop in an HTML prototype. Comment on the exact element, ask for a few versions of a section, and watch
