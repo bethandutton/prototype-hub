@@ -34,12 +34,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-h1,
-h2,
-.serif {
-  font-family: var(--font-serif), Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+@layer base {
+  h1,
+  h2,
+  .serif {
+    font-family: var(--font-serif), Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
 }
 
 :focus-visible {

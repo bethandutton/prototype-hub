@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { createGrant } from "@/lib/grant";
 import * as github from "@/lib/github";
 import { currentOrg, getProject, githubToken } from "@/lib/projects";
 import { timeAgo } from "@/lib/time";
@@ -24,7 +25,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
   const current = v ?? latest;
   const files = current ? await github.listFiles(token, repo, current, project.path) : [];
   const hasEntry = files.some((f) => f.path === project.entryFile);
-  const src = hasEntry && current ? `/projects/${project.id}/files/${current}/${project.entryFile}` : null;
+  const src = hasEntry && current ? `/view/${createGrant(project.id, org.orgId)}/${current}/${project.entryFile}` : null;
 
   return (
     <div className="flex min-h-0 flex-1">
@@ -83,10 +84,12 @@ export default async function ProjectPage({ params, searchParams }: Props) {
                       href={i === 0 ? `/projects/${project.id}` : `/projects/${project.id}?v=${ver.sha}`}
                       className={`-mx-2 block rounded px-2 py-2 transition-colors hover:bg-stage ${active ? "bg-stage" : ""}`}
                     >
-                      <span className="block truncate text-sm">{ver.message}</span>
+                      <span className="flex items-baseline justify-between gap-3 text-sm">
+                        <span className="truncate">{ver.message}</span>
+                        {i === 0 && <span className="shrink-0 text-xs text-muted">Latest</span>}
+                      </span>
                       <span className="block text-xs text-muted">
                         {ver.author}, {timeAgo(ver.date)}
-                        {i === 0 ? " · latest" : ""}
                       </span>
                     </Link>
                   </li>
