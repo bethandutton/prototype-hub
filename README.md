@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rehearsal
 
-## Getting Started
+Review working HTML prototypes together, with the edits made by each person's own AI agent. See [PLAN.md](PLAN.md) for what it is and where it's going.
 
-First, run the development server:
+## Running it locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+vercel env pull .env.local   # Clerk, Neon and TOKEN_SECRET
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What's in `.env.local`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Used for |
+|---|---|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Sign-in and teams (Clerk) |
+| `DATABASE_URL` | Projects and connections (Neon Postgres) |
+| `TOKEN_SECRET` | Encrypting stored GitHub tokens and signing prototype view links |
 
-## Learn More
+## Database changes
 
-To learn more about Next.js, take a look at the following resources:
+Edit `src/db/schema.ts`, then:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npx dotenv -e .env.local -- npx drizzle-kit push
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## How a prototype is shown
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Files live in the team's own GitHub repository. The viewer asks GitHub for the files at a given commit and serves them from `/view/<grant>/<commit>/<file>`, where the grant is a short-lived signed permission for one project. The prototype runs in a sandboxed frame with a small helper script added, which reports the element under the pointer back to the app.

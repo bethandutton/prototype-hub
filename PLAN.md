@@ -7,6 +7,7 @@ Name: **Rehearsal** — a prototype is a rehearsal for the real thing.
 Figma-style collaborative review for working HTML prototypes, where the editing is done by each person's own AI agent.
 
 - A prototype is a plain HTML/CSS/JS file or folder (the same format as a Claude artifact). It is uploaded by dragging it into the web app or by an agent over MCP.
+- Rehearsal does not keep the files. When a team sets up a project they choose where the files live: **their own cloud** (a GitHub repository today; a Google Drive shared folder next) or **Rehearsal Cloud** (coming soon, paid). Because a repo or shared folder syncs to each person's machine, their agent edits the files right there. Rehearsal only keeps the lightweight collaboration data: comments, presence, variants, chat.
 - The web app is for **viewing, commenting, comparing and chatting**. Nobody edits code in the browser.
 - Every person connects **their own agent** (Claude Code, Cursor, Codex, …) on their own subscription. From the browser they select elements and send instructions; the agent makes the change and publishes a new version.
 - Live presence like Figma: other people's cursors, who is here, and a "being edited" outline on any section an agent is currently working on.
@@ -26,7 +27,7 @@ Figma-style collaborative review for working HTML prototypes, where the editing 
 
 | Phase | What you get |
 |---|---|
-| 1. Foundations | Sign in, organisations, projects, upload an HTML file or folder, view it live, version history |
+| 1. Foundations (done) | Sign in, teams, projects, storage picker, upload an HTML file or folder, view it live, hover readout, version history |
 | 2. Agent connection (MCP) | An agent signs in, lists projects, reads files, publishes new versions |
 | 3. Live together | Multiplayer cursors, presence, comments pinned to elements |
 | 4. Select and delegate | Select a section in the browser and send it to your connected agent; "being edited" overlays; section locks |
@@ -39,7 +40,7 @@ Each phase is usable on its own.
 
 - **Web app:** Next.js (App Router) on Vercel.
 - **Sign in and organisations:** Clerk. The same identity is used by agents over MCP.
-- **Data:** Postgres for organisations, projects, versions, comments, variants, chat. Blob storage for prototype files.
+- **Data:** Postgres (Neon) for projects, storage connections, comments, variants, chat. No file storage of our own until Rehearsal Cloud.
 - **Live presence:** Liveblocks for cursors, presence and element locks.
-- **Prototype rendering:** a sandboxed iframe. A small helper script inside the frame gives every element a stable id, reports hovers and selections to the app, and draws overlays (comments, cursors, "being edited"). Uploaded code never touches the app itself.
+- **Prototype rendering:** a sandboxed iframe, served through short-lived signed links (`/view/<grant>/<commit>/<file>`) because the sandbox has no cookies. A small helper script inside the frame gives every element a stable id, reports hovers and selections to the app, and draws overlays (comments, cursors, "being edited"). Uploaded code never touches the app itself.
 - **Agent connection:** an MCP server exposed by the app. Tools cover listing projects, reading files, reading comments and selections, publishing versions and variants, posting to chat, and claiming/releasing a section lock. The browser can push a task to a connected agent.
