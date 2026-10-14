@@ -28,7 +28,7 @@ Figma-style collaborative review for working HTML prototypes, where the editing 
 | Phase | What you get |
 |---|---|
 | 1. Foundations (done) | Sign in, teams, projects, storage picker, upload an HTML file or folder, view it live, hover readout, version history |
-| 2. Agent connection (MCP) | An agent signs in, lists projects, reads files, publishes new versions |
+| 2. Agent connection (MCP) (done) | A person creates a token on "Connect your agent"; their agent lists projects, reads files, sees versions, publishes new ones credited to them, creates projects |
 | 3. Live together | Multiplayer cursors, presence, comments pinned to elements |
 | 4. Select and delegate | Select a section in the browser and send it to your connected agent; "being edited" overlays; section locks |
 | 5. Variants | Section options A/B/C, switch in place, vote, pick a winner |
@@ -43,4 +43,4 @@ Each phase is usable on its own.
 - **Data:** Postgres (Neon) for projects, storage connections, comments, variants, chat. No file storage of our own until Rehearsal Cloud.
 - **Live presence:** Liveblocks for cursors, presence and element locks.
 - **Prototype rendering:** a sandboxed iframe, served through short-lived signed links (`/view/<grant>/<commit>/<file>`) because the sandbox has no cookies. A small helper script inside the frame gives every element a stable id, reports hovers and selections to the app, and draws overlays (comments, cursors, "being edited"). Uploaded code never touches the app itself.
-- **Agent connection:** an MCP server exposed by the app. Tools cover listing projects, reading files, reading comments and selections, publishing versions and variants, posting to chat, and claiming/releasing a section lock. The browser can push a task to a connected agent.
+- **Agent connection:** an MCP server at `/api/mcp` (Streamable HTTP). Agents authenticate with a personal token made in the app (hashed at rest); a "Sign in with Rehearsal" OAuth flow can replace this later. Tools today: list_projects, get_project, list_versions, read_file, publish_version, create_project. Later: comments and selections, variants, chat, section locks, and the browser pushing a task to a connected agent.

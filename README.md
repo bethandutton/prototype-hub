@@ -31,3 +31,7 @@ npx dotenv -e .env.local -- npx drizzle-kit push
 ## How a prototype is shown
 
 Files live in the team's own GitHub repository. The viewer asks GitHub for the files at a given commit and serves them from `/view/<grant>/<commit>/<file>`, where the grant is a short-lived signed permission for one project. The prototype runs in a sandboxed frame with a small helper script added, which reports the element under the pointer back to the app.
+
+## Connecting an agent
+
+Open **Connect your agent** in the app, create a token, and paste the command it shows into your agent. The MCP server lives at `/api/mcp`; tokens are `rh_…` strings and only their hash is stored.
