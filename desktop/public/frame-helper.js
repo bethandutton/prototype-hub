@@ -24,7 +24,7 @@
   }
 
   var hover = box("border:1px solid rgba(23,23,23,.6);border-radius:2px");
-  var selected = box("border:1.5px solid #f54900;border-radius:2px;box-shadow:0 0 0 3px rgba(245,73,0,.12)");
+  var selected = box("border:1.5px solid #2f6ff0;border-radius:2px;box-shadow:0 0 0 3px rgba(47,111,240,.14)");
 
   function mount() {
     if (document.body && !layer.parentNode) document.body.appendChild(layer);
@@ -87,7 +87,7 @@
       dot.setAttribute("data-rh-pin", pin.blockId);
       dot.textContent = String(pin.count);
       dot.style.cssText =
-        "position:absolute;pointer-events:auto;cursor:pointer;min-width:20px;height:20px;padding:0 6px;border-radius:10px 10px 10px 2px;background:#171717;color:#fff;font:600 11px/20px -apple-system,system-ui,sans-serif;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.25);left:" +
+        "position:absolute;pointer-events:auto;cursor:pointer;min-width:20px;height:20px;padding:0 6px;border-radius:10px 10px 10px 2px;background:#2f6ff0;color:#fff;font:600 11px/20px -apple-system,system-ui,sans-serif;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.25);left:" +
         (r.right + window.scrollX - 10) +
         "px;top:" +
         (r.top + window.scrollY - 10) +

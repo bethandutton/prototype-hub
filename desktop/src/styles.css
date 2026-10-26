@@ -1,12 +1,14 @@
 :root {
   --ink: #171717;
-  --muted: #767676;
-  --faint: #a8a8a4;
-  --hair: #e6e6e2;
-  --stage: #f4f4f2;
+  --muted: #6b6b6b;
+  --faint: #9a9a97;
+  --hair: #e2e2df;
+  --stage: #ededeb;
+  --chrome: #f5f5f3;
   --paper: #ffffff;
-  --accent: #f54900;
-  --accent-soft: rgba(245, 73, 0, 0.1);
+  --accent: #2f6ff0;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(47, 111, 240, 0.12);
   --radius: 8px;
   --font: -apple-system, "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
   --mono: "SF Mono", ui-monospace, Menlo, monospace;
@@ -26,7 +28,7 @@ body,
 }
 
 body {
-  font: 14px/1.5 var(--font);
+  font: 13px/1.5 var(--font);
   color: var(--ink);
   background: var(--paper);
   letter-spacing: -0.01em;
@@ -42,16 +44,16 @@ h3 {
 }
 
 h1 {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1.2;
 }
 
 h2 {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 h3 {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 p {
@@ -84,12 +86,12 @@ button {
 }
 
 .small {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .mono {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .row {
@@ -115,10 +117,10 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
+  height: 30px;
   padding: 0 12px;
   border: 1px solid var(--hair);
-  border-radius: 999px;
+  border-radius: 6px;
   background: var(--paper);
   color: var(--ink);
   white-space: nowrap;
@@ -135,13 +137,15 @@ button {
 }
 
 .btn.primary {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(180deg, #3f7ffa, #2a66e6);
+  border-color: #2a66e6;
+  color: var(--accent-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 2px rgba(42, 102, 230, 0.3);
 }
 
 .btn.primary:hover {
-  background: #000;
+  background: linear-gradient(180deg, #3a78f0, #255dd6);
+  border-color: #255dd6;
 }
 
 .btn.primary:disabled {
@@ -165,8 +169,9 @@ button {
 }
 
 .btn.on {
-  background: var(--stage);
-  border-color: var(--hair);
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
 }
 
 .icon-btn {
@@ -187,8 +192,8 @@ button {
 }
 
 .icon-btn.on {
-  background: var(--stage);
-  color: var(--ink);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .icon-btn:disabled {
@@ -238,7 +243,8 @@ button {
 .input:focus,
 .textarea:focus,
 .select:focus {
-  border-color: var(--ink);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .textarea {
@@ -277,8 +283,9 @@ button {
 }
 
 .badge.production {
-  border-color: var(--ink);
-  color: var(--ink);
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .badge .dot {
@@ -302,6 +309,11 @@ button {
   background: var(--stage);
   font-size: 11px;
   color: var(--muted);
+}
+
+.chip {
+  background: var(--paper);
+  border: 1px solid var(--hair);
 }
 
 .chip .dot {
@@ -331,6 +343,7 @@ button {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--hair);
+  background: var(--chrome);
   padding: 44px 12px 12px;
   -webkit-app-region: drag;
   overflow: hidden;
@@ -341,10 +354,22 @@ button {
 }
 
 .wordmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   padding: 4px 8px 12px;
   letter-spacing: -0.02em;
+}
+
+.wordmark::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #5b93ff, #2a66e6);
+  box-shadow: 0 1px 2px rgba(42, 102, 230, 0.35);
 }
 
 .switcher {
@@ -357,6 +382,7 @@ button {
   border-radius: 6px;
   background: var(--paper);
   text-align: left;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .switcher:hover {
@@ -388,12 +414,32 @@ button {
 }
 
 .nav-item:hover {
-  background: var(--stage);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.nav-item {
+  position: relative;
 }
 
 .nav-item.on {
-  background: var(--stage);
+  background: var(--accent-soft);
+  color: var(--accent);
   font-weight: 500;
+}
+
+.nav-item.on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.nav-item.on .muted {
+  color: var(--accent);
 }
 
 .nav-item .muted {
@@ -427,14 +473,14 @@ button {
 }
 
 .me:hover {
-  background: var(--stage);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .avatar {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--accent);
   color: var(--paper);
   font-size: 11px;
   font-weight: 600;
@@ -457,7 +503,7 @@ button {
 }
 
 .page {
-  padding: 44px 40px 40px;
+  padding: 40px 36px 36px;
   overflow: auto;
   flex: 1;
 }
@@ -515,12 +561,16 @@ button {
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--hair);
-  border-radius: var(--radius);
+  border-radius: 10px;
   background: var(--stage);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
 }
 
 .card:hover .thumb {
   border-color: var(--faint);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 32px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .thumb iframe {
@@ -551,7 +601,7 @@ button {
 }
 
 .card-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -571,7 +621,9 @@ button {
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgba(23, 23, 23, 0.25);
+  background: rgba(23, 23, 23, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -584,9 +636,9 @@ button {
   max-height: calc(100vh - 80px);
   overflow: auto;
   background: var(--paper);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 24px 70px rgba(0, 0, 0, 0.22);
 }
 
 .dialog h2 {
@@ -613,10 +665,12 @@ button {
   min-width: 220px;
   max-height: 60vh;
   overflow: auto;
-  background: var(--paper);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--hair);
-  border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06), 0 16px 40px rgba(0, 0, 0, 0.14);
   padding: 4px;
   z-index: 50;
 }
@@ -679,9 +733,10 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 52px;
+  height: 46px;
   padding: 0 12px 0 16px;
   border-bottom: 1px solid var(--hair);
+  background: var(--chrome);
   -webkit-app-region: drag;
 }
 
@@ -711,7 +766,9 @@ button {
   position: relative;
   flex: 1;
   min-width: 0;
-  background: var(--stage);
+  background-color: var(--stage);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.09) 1px, transparent 1px);
+  background-size: 16px 16px;
   overflow: auto;
   display: flex;
   align-items: flex-start;
@@ -721,18 +778,21 @@ button {
 
 .stage.fill {
   padding: 0;
+  background-image: none;
 }
 
 .frame-wrap {
   position: relative;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 30px rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.06), 0 18px 50px rgba(0, 0, 0, 0.12);
   overflow: hidden;
   flex: none;
 }
 
 .stage.fill .frame-wrap {
   box-shadow: none;
+  border-radius: 0;
   width: 100%;
   height: 100%;
 }
@@ -748,8 +808,12 @@ button {
   position: absolute;
   left: 16px;
   bottom: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--hair);
   font-size: 11px;
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .hover-label {
@@ -759,11 +823,12 @@ button {
   transform: translateX(-50%);
   padding: 3px 10px;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--accent);
   color: var(--paper);
   font-size: 11px;
   pointer-events: none;
   max-width: 60%;
+  box-shadow: 0 2px 8px rgba(47, 111, 240, 0.3);
 }
 
 .panel {
@@ -777,15 +842,21 @@ button {
 }
 
 .panel-head {
+  background: var(--chrome);
+  border-bottom: 1px solid var(--hair);
+}
+
+.panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 16px 10px;
+  padding: 10px 12px 10px 16px;
+  min-height: 46px;
 }
 
 .panel-head h3 {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .panel-body {
@@ -811,7 +882,9 @@ button {
   top: 12px;
   right: 12px;
   z-index: 20;
-  opacity: 0.4;
+  opacity: 0.5;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   transition: opacity 0.15s;
 }
 
@@ -831,12 +904,15 @@ button {
 
 .alt-card {
   border: 1px solid var(--hair);
-  border-radius: var(--radius);
+  border-radius: 10px;
   padding: 12px;
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 18px rgba(0, 0, 0, 0.05);
 }
 
 .alt-card.live {
-  border-color: var(--ink);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .alt-meta {
@@ -850,7 +926,7 @@ button {
 }
 
 .alt-why {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -863,7 +939,8 @@ button {
   margin-top: 10px;
   padding: 10px;
   border-radius: 6px;
-  background: var(--stage);
+  background: var(--chrome);
+  border: 1px solid var(--hair);
   font-family: var(--mono);
   font-size: 11px;
   line-height: 1.5;
@@ -893,6 +970,10 @@ button {
 }
 
 .alt-dots span.live {
+  background: var(--accent);
+}
+
+.alt-dots span.on.live {
   background: var(--accent);
 }
 
@@ -975,7 +1056,7 @@ button {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--faint);
   margin-top: 6px;
   margin-left: 3px;
 }
@@ -1045,7 +1126,7 @@ button {
 .centre .lead {
   color: var(--muted);
   margin-bottom: 28px;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .code {
@@ -1053,9 +1134,9 @@ button {
   padding: 12px 44px 12px 14px;
   border: 1px solid var(--hair);
   border-radius: var(--radius);
-  background: var(--stage);
+  background: var(--chrome);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -1124,7 +1205,7 @@ button {
 }
 
 .links-list a {
-  color: var(--ink);
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-color: var(--hair);
