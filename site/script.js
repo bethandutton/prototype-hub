@@ -1,7 +1,7 @@
 // Small interactions. Nothing moves unless you scroll or click.
 
 (function () {
-  var nav = document.querySelector('.subnav');
+  var nav = document.querySelector('.topbar');
   function onScroll() { nav.classList.toggle('scrolled', window.scrollY > 4); }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
