@@ -1,0 +1,23 @@
+{
+  "id": "mvp8i1np00-2bcb71",
+  "title": "Spring launch landing page",
+  "description": "The page for the spring launch. The headline is still open.",
+  "mode": "production",
+  "entry": "index.html",
+  "resourceLinks": [
+    {
+      "label": "Launch brief",
+      "url": "https://docs.google.com/document/d/launch-brief"
+    },
+    {
+      "label": "LLE-1024 Landing page copy",
+      "url": "https://linear.app/ledger/issue/LLE-1024"
+    },
+    {
+      "label": "Interview notes",
+      "url": "https://notion.so/ledger/interviews"
+    }
+  ],
+  "createdAt": "2026-10-26T12:29:55.813Z",
+  "updatedAt": "2026-10-26T12:32:11.722Z"
+}
