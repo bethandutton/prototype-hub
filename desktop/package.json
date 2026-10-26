@@ -1,0 +1,32 @@
+{
+  "name": "rehearsal-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rehearsal for Mac: a local-first home for AI-built HTML prototypes, with an MCP server any agent can talk to.",
+  "main": "out/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs && vite build",
+    "start": "electron .",
+    "serve": "node scripts/build.mjs && node out/serve.cjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.3.1",
+    "cheerio": "^1.2.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.0.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.5"
+  }
+}

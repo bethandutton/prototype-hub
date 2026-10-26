@@ -1,4 +1,8 @@
+packages:
+  - "."
+  - "desktop"
 allowBuilds:
+  electron: true
   esbuild: true
   sharp: true
   unrs-resolver: true

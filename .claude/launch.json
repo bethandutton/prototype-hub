@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rehearsal-desktop",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["desktop/out/serve.cjs"],
+      "port": 4848
+    }
+  ]
+}
