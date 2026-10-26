@@ -1,4 +1,4 @@
-import type { Block, BlockInfo, Comment, Decision, Folder, InsightLink, Mode, PageVersion, Prototype, ResourceLink, Workspace } from "@core/types";
+import type { Block, BlockInfo, BlockVersion, Comment, Decision, Folder, InsightLink, Mode, PageVersion, Prototype, ResourceLink, Workspace } from "@core/types";
 import type { DesignLibrary } from "@core/library";
 
 export type { Block, BlockInfo, BlockVersion, Comment, Decision, Folder, InsightLink, Mode, PageVersion, Prototype, ResourceLink, Workspace } from "@core/types";
@@ -48,6 +48,7 @@ export const api = {
   removeWorkspace: (id: string) => call<{ removed: boolean }>("DELETE", `/api/workspaces/${id}`),
   tree: (id: string) => call<{ folders: Folder[]; prototypes: Prototype[] }>("GET", `/api/workspaces/${id}/tree`),
   library: (id: string) => call<DesignLibrary | null>("GET", `/api/workspaces/${id}/library`),
+  people: (id: string) => call<string[]>("GET", `/api/workspaces/${id}/people`),
   createFolder: (id: string, parent: string, name: string) => call<Folder>("POST", `/api/workspaces/${id}/folders`, { parent, name }),
   createPrototype: (id: string, input: { folder: string; title: string; description: string; mode: Mode; html: string; resourceLinks: ResourceLink[] }) =>
     call<Prototype>("POST", `/api/workspaces/${id}/prototypes`, input),
@@ -58,7 +59,11 @@ export const api = {
   proposeVersion: (id: string, blockId: string, content: string, rationale: string) =>
     call<{ block: Block }>("POST", `/api/prototypes/${id}/blocks/${blockId}/versions`, { content, rationale }),
   selectVersion: (id: string, blockId: string, versionId: string) => call<Block>("POST", `/api/prototypes/${id}/blocks/${blockId}/select`, { versionId }),
-  addComment: (id: string, input: { body: string; blockId?: string | null; parentId?: string | null }) => call<Comment>("POST", `/api/prototypes/${id}/comments`, input),
+  addComment: (id: string, input: { body: string; blockId?: string | null; parentId?: string | null; assignee?: string | null }) =>
+    call<Comment>("POST", `/api/prototypes/${id}/comments`, input),
+  assignComment: (id: string, commentId: string, assignee: string | null) => call<Comment>("POST", `/api/prototypes/${id}/comments/${commentId}/assign`, { assignee }),
+  assignVersion: (id: string, blockId: string, versionId: string, assignee: string | null) =>
+    call<BlockVersion>("POST", `/api/prototypes/${id}/blocks/${blockId}/assign`, { versionId, assignee }),
   resolveComment: (id: string, commentId: string, resolved: boolean) => call<Comment>("POST", `/api/prototypes/${id}/comments/${commentId}/resolve`, { resolved }),
   addInsight: (id: string, input: { blockId?: string | null; query: string }) => call<InsightLink>("POST", `/api/prototypes/${id}/insights`, input),
 };

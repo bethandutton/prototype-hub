@@ -37,6 +37,7 @@ test("a block can be read and replaced", () => {
 
 test("workspace, folder, prototype and the five headlines", () => {
   const { store, ws } = fresh();
+  store.setSettings({ name: "Bethan" });
   const space = store.addWorkspace({ name: "Marketing", path: ws });
   assert.ok(fs.existsSync(path.join(ws, "workspace.json")));
   store.createFolder(space.id, "", "Landing pages");
@@ -75,6 +76,12 @@ test("workspace, folder, prototype and the five headlines", () => {
   assert.equal(reply.parentId, c.id);
   store.resolveComment(proto.id, c.id);
   assert.ok(store.comments(proto)[0].resolvedAt);
+
+  store.assignComment(proto.id, c.id, "Eli");
+  assert.equal(store.comments(proto)[0].assignee, "Eli");
+  store.assignBlockVersion(proto.id, { blockId: headline.id, versionId: pick.id, assignee: "Ben" });
+  assert.equal(store.block(proto, headline.id)!.versions[3].assignee, "Ben");
+  assert.deepEqual(store.people(space.id), ["Ana", "Ben", "Bethan", "Cho", "Dee", "Eli"]);
 
   // Every record is its own file, so a second machine syncing the folder never overwrites one.
   const files = fs.readdirSync(path.join(ws, proto.dir, "history", "blocks", headline.id, "versions"));

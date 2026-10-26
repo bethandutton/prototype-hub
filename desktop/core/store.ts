@@ -332,7 +332,7 @@ export class Store {
     for (const blockId of listDirs(this.historyDir(proto, "blocks"))) {
       const info = live.get(blockId) ?? this.blockRecord(proto, blockId);
       if (!info) continue;
-      const versions = listJson<BlockVersion>(path.join(this.blockDir(proto, blockId), "versions"));
+      const versions = listJson<BlockVersion>(path.join(this.blockDir(proto, blockId), "versions")).map((v) => ({ ...v, assignee: v.assignee ?? null }));
       const selected = this.selectionOf(proto, blockId);
       out.push({ ...info, versions, selectedVersionId: selected?.versionId ?? versions[0]?.id ?? null });
     }
@@ -347,7 +347,7 @@ export class Store {
   // the original is always one of the alternatives.
   proposeBlockVersion(
     id: string,
-    input: { blockId: string; content: string; rationale?: string; author?: string; source?: Source; select?: boolean },
+    input: { blockId: string; content: string; rationale?: string; author?: string; source?: Source; select?: boolean; assignee?: string | null },
   ): { block: Block; version: BlockVersion } {
     const proto = this.findPrototype(id);
     if (!proto) throw new Error("No such prototype.");
@@ -367,6 +367,7 @@ export class Store {
         rationale: "",
         createdAt: now(),
         source: "human",
+        assignee: null,
       };
       writeJson(path.join(dir, "versions", `${original.id}.json`), original);
     }
@@ -378,6 +379,7 @@ export class Store {
       rationale: (input.rationale ?? "").trim(),
       createdAt: now(),
       source: input.source ?? (input.author ? "agent" : "human"),
+      assignee: input.assignee?.trim() || null,
     };
     writeJson(path.join(dir, "versions", `${version.id}.json`), version);
     if (input.select) this.selectBlockVersion(id, { blockId: input.blockId, versionId: version.id, by: version.author });
@@ -398,6 +400,36 @@ export class Store {
     writeJson(path.join(dir, "selected", `${newId()}.json`), selection);
     this.touch(proto);
     return this.block(proto, input.blockId)!;
+  }
+
+  assignBlockVersion(id: string, input: { blockId: string; versionId: string; assignee: string | null }): BlockVersion {
+    const proto = this.findPrototype(id);
+    if (!proto) throw new Error("No such prototype.");
+    const file = path.join(this.blockDir(proto, input.blockId), "versions", `${input.versionId}.json`);
+    const version = readJson<BlockVersion>(file);
+    if (!version) throw new Error("No such version.");
+    version.assignee = input.assignee?.trim() || null;
+    writeJson(file, version);
+    return version;
+  }
+
+  // Everyone who has left a mark in a workspace, for assigning things.
+  people(workspaceId: string): string[] {
+    const names = new Set<string>([this.me()]);
+    for (const proto of this.listPrototypes(workspaceId)) {
+      for (const c of this.comments(proto)) {
+        names.add(c.author);
+        if (c.assignee) names.add(c.assignee);
+      }
+      for (const b of this.blocks(proto)) {
+        for (const v of b.versions) {
+          if (v.author !== "Original") names.add(v.author);
+          if (v.assignee) names.add(v.assignee);
+        }
+      }
+      for (const d of this.decisions(proto)) names.add(d.by);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
   }
 
   decisions(proto: Prototype): Decision[] {
@@ -423,10 +455,10 @@ export class Store {
   // Comments
 
   comments(proto: Prototype): Comment[] {
-    return listJson<Comment>(this.historyDir(proto, "comments"));
+    return listJson<Comment>(this.historyDir(proto, "comments")).map((c) => ({ ...c, assignee: c.assignee ?? null }));
   }
 
-  addComment(id: string, input: { body: string; blockId?: string | null; parentId?: string | null; author?: string }): Comment {
+  addComment(id: string, input: { body: string; blockId?: string | null; parentId?: string | null; author?: string; assignee?: string | null }): Comment {
     const proto = this.findPrototype(id);
     if (!proto) throw new Error("No such prototype.");
     const body = input.body.trim();
@@ -440,8 +472,20 @@ export class Store {
       body,
       createdAt: now(),
       resolvedAt: null,
+      assignee: input.assignee?.trim() || null,
     };
     writeJson(this.historyDir(proto, "comments", `${comment.id}.json`), comment);
+    return comment;
+  }
+
+  assignComment(id: string, commentId: string, assignee: string | null): Comment {
+    const proto = this.findPrototype(id);
+    if (!proto) throw new Error("No such prototype.");
+    const file = this.historyDir(proto, "comments", `${commentId}.json`);
+    const comment = readJson<Comment>(file);
+    if (!comment) throw new Error("No such comment.");
+    comment.assignee = assignee?.trim() || null;
+    writeJson(file, comment);
     return comment;
   }
 

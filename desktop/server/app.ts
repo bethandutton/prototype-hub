@@ -208,6 +208,7 @@ export async function startAppServer(opts: AppServerOptions): Promise<AppServer>
           return json(res, 200, { removed: true });
         }
         if (sub === "tree" && m === "GET") return json(res, 200, store.tree(id));
+        if (sub === "people" && m === "GET") return json(res, 200, store.people(id));
         if (sub === "library" && m === "GET") {
           const ws = store.getWorkspace(id);
           if (!ws) throw new HttpError(404, "No such workspace.");
@@ -267,7 +268,14 @@ export async function startAppServer(opts: AppServerOptions): Promise<AppServer>
       }
       if (sub === "blocks" && subId && action === "versions" && m === "POST") {
         const body = await readJsonBody(req);
-        const r = store.proposeBlockVersion(id, { blockId: subId, content: String(body.content ?? ""), rationale: String(body.rationale ?? ""), source: "human", select: Boolean(body.select) });
+        const r = store.proposeBlockVersion(id, {
+          blockId: subId,
+          content: String(body.content ?? ""),
+          rationale: String(body.rationale ?? ""),
+          source: "human",
+          select: Boolean(body.select),
+          assignee: body.assignee ? String(body.assignee) : null,
+        });
         notify({ type: "blocks", prototypeId: id });
         return json(res, 201, r);
       }
@@ -279,9 +287,26 @@ export async function startAppServer(opts: AppServerOptions): Promise<AppServer>
       }
       if (sub === "comments" && !subId && m === "POST") {
         const body = await readJsonBody(req);
-        const c = store.addComment(id, { body: String(body.body ?? ""), blockId: body.blockId ? String(body.blockId) : null, parentId: body.parentId ? String(body.parentId) : null });
+        const c = store.addComment(id, {
+          body: String(body.body ?? ""),
+          blockId: body.blockId ? String(body.blockId) : null,
+          parentId: body.parentId ? String(body.parentId) : null,
+          assignee: body.assignee ? String(body.assignee) : null,
+        });
         notify({ type: "comments", prototypeId: id });
         return json(res, 201, c);
+      }
+      if (sub === "comments" && subId && action === "assign" && m === "POST") {
+        const body = await readJsonBody(req);
+        const c = store.assignComment(id, subId, body.assignee ? String(body.assignee) : null);
+        notify({ type: "comments", prototypeId: id });
+        return json(res, 200, c);
+      }
+      if (sub === "blocks" && subId && action === "assign" && m === "POST") {
+        const body = await readJsonBody(req);
+        const v = store.assignBlockVersion(id, { blockId: subId, versionId: String(body.versionId ?? ""), assignee: body.assignee ? String(body.assignee) : null });
+        notify({ type: "blocks", prototypeId: id });
+        return json(res, 200, v);
       }
       if (sub === "comments" && subId && action === "resolve" && m === "POST") {
         const body = await readJsonBody(req);

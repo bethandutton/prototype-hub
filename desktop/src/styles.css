@@ -1085,8 +1085,41 @@ button {
 
 .comment-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-top: 4px;
+}
+
+.assign {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px 0 5px;
+  border: 1px dashed var(--hair);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--faint);
+  font-size: 11px;
+  max-width: 140px;
+}
+
+.assign:hover {
+  color: var(--ink);
+  border-color: var(--faint);
+}
+
+.assign.set {
+  border-style: solid;
+  border-color: var(--hair);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.assign .avatar {
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
 }
 
 .comment-target:hover {

@@ -54,6 +54,7 @@ export function Viewer({
   const [frameKey, setFrameKey] = useState(0);
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
+  const [people, setPeople] = useState<string[]>([]);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const frame = useRef<HTMLIFrameElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -66,6 +67,7 @@ export function Viewer({
       setData(d);
       setError("");
       onWorkspace(d.prototype.workspaceId);
+      api.people(d.prototype.workspaceId).then(setPeople).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -222,6 +224,7 @@ export function Viewer({
   const panelProps: PanelProps = {
     data,
     me,
+    people,
     reload,
     selected,
     selectBlock,

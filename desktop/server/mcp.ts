@@ -34,6 +34,7 @@ const mode = z.enum(["wireframe", "production"]);
 const link = z.object({ label: z.string(), url: z.string() });
 const file = z.object({ path: z.string(), content: z.string() });
 const author = z.string().optional().describe("Who you are acting for. Defaults to the designer signed in to Rehearsal on this machine.");
+const assignee = z.string().optional().describe("A person who should look at or act on this, by name");
 
 export function createMcpServer(store: Store, notify: Notify = () => {}): McpServer {
   const server = new McpServer({ name: "rehearsal", version: "0.1.0" }, { instructions: INSTRUCTIONS });
@@ -161,12 +162,13 @@ export function createMcpServer(store: Store, notify: Notify = () => {}): McpSer
         content: z.string().min(1).describe("The full new markup of that one element"),
         rationale: z.string().optional().describe("The designer's one-line reason. Empty if they skipped."),
         select: z.boolean().optional().describe("Make it the live version straight away"),
+        assignee,
         author,
       }),
     },
-    ({ prototypeId, blockId, content, rationale, select, author: who }) =>
+    ({ prototypeId, blockId, content, rationale, select, assignee: to, author: who }) =>
       guard(() => {
-        const result = store.proposeBlockVersion(prototypeId, { blockId, content, rationale, author: who, source: "agent", select });
+        const result = store.proposeBlockVersion(prototypeId, { blockId, content, rationale, author: who, source: "agent", select, assignee: to });
         notify({ type: "blocks", prototypeId });
         return { versionId: result.version.id, author: result.version.author, alternatives: result.block.versions.length, live: result.block.selectedVersionId === result.version.id };
       }),
@@ -215,12 +217,13 @@ export function createMcpServer(store: Store, notify: Notify = () => {}): McpSer
         body: z.string().min(1),
         blockId: z.string().optional().describe("data-rh-id of the element, or omit for the whole page"),
         parentId: z.string().optional().describe("Comment id to reply to"),
+        assignee,
         author,
       }),
     },
-    ({ prototypeId, body, blockId, parentId, author: who }) =>
+    ({ prototypeId, body, blockId, parentId, assignee: to, author: who }) =>
       guard(() => {
-        const c = store.addComment(prototypeId, { body, blockId, parentId, author: who });
+        const c = store.addComment(prototypeId, { body, blockId, parentId, author: who, assignee: to });
         notify({ type: "comments", prototypeId });
         return c;
       }),
@@ -250,6 +253,41 @@ export function createMcpServer(store: Store, notify: Notify = () => {}): McpSer
         notify({ type: "comments", prototypeId });
         return { resolved: Boolean(c.resolvedAt) };
       }),
+  );
+
+  server.registerTool(
+    "assign",
+    {
+      title: "Assign",
+      description: "Assign a comment or a block alternative to a person, or clear the assignment with an empty assignee.",
+      inputSchema: z.object({
+        prototypeId: z.string(),
+        commentId: z.string().optional(),
+        blockId: z.string().optional().describe("With versionId, to assign an alternative"),
+        versionId: z.string().optional(),
+        assignee: z.string().describe("The person's name, or empty to clear"),
+      }),
+    },
+    ({ prototypeId, commentId, blockId, versionId, assignee: to }) =>
+      guard(() => {
+        if (commentId) {
+          const c = store.assignComment(prototypeId, commentId, to || null);
+          notify({ type: "comments", prototypeId });
+          return c;
+        }
+        if (blockId && versionId) {
+          const v = store.assignBlockVersion(prototypeId, { blockId, versionId, assignee: to || null });
+          notify({ type: "blocks", prototypeId });
+          return v;
+        }
+        throw new Error("Give a commentId, or a blockId and versionId.");
+      }),
+  );
+
+  server.registerTool(
+    "list_people",
+    { title: "List people", description: "Everyone who has commented, proposed or decided in a workspace, for assigning things.", inputSchema: z.object({ workspaceId: z.string() }) },
+    ({ workspaceId }) => guard(() => store.people(workspaceId)),
   );
 
   server.registerTool(

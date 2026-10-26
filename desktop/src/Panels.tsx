@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { api, timeAgo, type Comment, type Mode, type PrototypeData, type ResourceLink } from "./api";
-import { Field, Icon, initials } from "./ui";
+import { Field, Icon, Menu, initials } from "./ui";
 import type { SelectedBlock } from "./Viewer";
 
 export interface PanelProps {
   data: PrototypeData;
   me: string;
+  people: string[];
   reload: () => Promise<void>;
   selected: SelectedBlock | null;
   selectBlock: (id: string | null, scroll?: boolean) => void;
@@ -16,6 +17,80 @@ export interface PanelProps {
   previewVersionId: string | null;
   previewVersion: (versionId: string | null) => void;
   onClose: () => void;
+}
+
+// Who a comment or an alternative is for. Pick someone who has already
+// taken part, or type a new name.
+export function Assign({ value, people, me, onChange }: { value: string | null; people: string[]; me: string; onChange: (name: string | null) => void }) {
+  const [typed, setTyped] = useState("");
+  const names = [...new Set([me, ...people])];
+  return (
+    <Menu
+      align="right"
+      trigger={() => (
+        <button className={`assign ${value ? "set" : ""}`} title="Assign to someone">
+          {value ? (
+            <>
+              <span className="avatar light">{initials(value)}</span>
+              <span className="truncate">{value === me ? "Me" : value}</span>
+            </>
+          ) : (
+            <>
+              <Icon name="plus" size={11} />
+              Assign
+            </>
+          )}
+        </button>
+      )}
+    >
+      {(close) => (
+        <>
+          <div className="menu-label">Assign to</div>
+          {names.map((n) => (
+            <button
+              key={n}
+              className={`menu-item ${value === n ? "on" : ""}`}
+              onClick={() => {
+                onChange(n);
+                close();
+              }}
+            >
+              <span className="row">
+                <span className="avatar light">{initials(n)}</span>
+                {n === me ? `${n} (me)` : n}
+              </span>
+              {value === n && <Icon name="check" size={14} />}
+            </button>
+          ))}
+          <div className="hair" />
+          <form
+            className="row"
+            style={{ padding: "4px 6px" }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!typed.trim()) return;
+              onChange(typed.trim());
+              setTyped("");
+              close();
+            }}
+          >
+            <input className="input" placeholder="Someone else…" value={typed} onChange={(e) => setTyped(e.target.value)} />
+          </form>
+          {value && (
+            <button
+              className="menu-item muted"
+              onClick={() => {
+                onChange(null);
+                close();
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </>
+      )}
+    </Menu>
+  );
 }
 
 function PanelHead({ title, onClose, children }: { title: string; onClose: () => void; children?: React.ReactNode }) {
@@ -34,7 +109,7 @@ function PanelHead({ title, onClose, children }: { title: string; onClose: () =>
 
 // The block panel: flick through a block's alternatives with their reasons,
 // pick a favourite, and read or leave comments on that block.
-export function BlockPanel({ data, selected, preview, highlight, reload, onClose }: PanelProps) {
+export function BlockPanel({ data, me, people, selected, preview, highlight, reload, onClose }: PanelProps) {
   const block = data.blocks.find((b) => b.id === selected!.id);
   const label = data.blockMap.find((b) => b.id === selected!.id)?.label ?? block?.label ?? selected!.label;
   const versions = block?.versions ?? [];
@@ -120,7 +195,12 @@ export function BlockPanel({ data, selected, preview, highlight, reload, onClose
                 <p className={`alt-why ${current.rationale ? "" : "none"}`}>{current.rationale || (current.author === "Original" ? "What was there before anyone proposed a change." : "No reason given.")}</p>
                 <div className="alt-preview">{current.content}</div>
                 <div className="row" style={{ marginTop: 12, justifyContent: "space-between" }}>
-                  <span className="small muted">{index === liveIndex ? "This is the live version." : ""}</span>
+                  <Assign
+                    value={current.assignee}
+                    people={people}
+                    me={me}
+                    onChange={(name) => api.assignVersion(data.prototype.id, blockId, current.id, name).then(reload)}
+                  />
                   <button className="btn small primary" disabled={index === liveIndex || busy} onClick={use}>
                     {index === liveIndex ? "Live" : "Use this"}
                   </button>
@@ -169,7 +249,7 @@ export function BlockPanel({ data, selected, preview, highlight, reload, onClose
 
         <div className="panel-section">
           <h4>Comments on this block</h4>
-          <Threads data={data} blockId={blockId} reload={reload} highlight={highlight} />
+          <Threads data={data} blockId={blockId} reload={reload} highlight={highlight} people={people} me={me} />
         </div>
       </div>
     </aside>
@@ -182,12 +262,16 @@ function Threads({
   reload,
   showResolved = false,
   highlight,
+  people,
+  me,
 }: {
   data: PrototypeData;
   blockId: string | null;
   reload: () => Promise<void>;
   showResolved?: boolean;
   highlight?: (blockId: string | null) => void;
+  people: string[];
+  me: string;
 }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [open, setOpen] = useState(showResolved);
@@ -211,6 +295,8 @@ function Threads({
             <button className="link small" onClick={() => toggle(c)}>
               {c.resolvedAt ? "Reopen" : "Resolve"}
             </button>
+            <span className="grow" />
+            <Assign value={c.assignee} people={people} me={me} onChange={(name) => api.assignComment(data.prototype.id, c.id, name).then(reload)} />
           </div>
           {replies(c.id).map((r) => (
             <div key={r.id} className="comment reply">
@@ -297,8 +383,9 @@ function Compose({ placeholder, onSend }: { placeholder: string; onSend: (body: 
   );
 }
 
-export function CommentsPanel({ data, reload, selectBlock, highlight, focusBlockId, onClose }: PanelProps) {
+export function CommentsPanel({ data, me, people, reload, selectBlock, highlight, focusBlockId, onClose }: PanelProps) {
   const showResolved = false;
+  const mine = data.comments.filter((c) => c.assignee === me && !c.resolvedAt).length;
   const focusRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!focusBlockId || !focusRef.current) return;
@@ -311,11 +398,13 @@ export function CommentsPanel({ data, reload, selectBlock, highlight, focusBlock
   const labelOf = (id: string) => data.blockMap.find((b) => b.id === id)?.label ?? data.blocks.find((b) => b.id === id)?.label ?? id;
   return (
     <aside className="panel">
-      <PanelHead title="Comments" onClose={onClose} />
+      <PanelHead title="Comments" onClose={onClose}>
+        {mine > 0 && <span className="chip">{mine} for me</span>}
+      </PanelHead>
       <div className="panel-body">
         <div className="panel-section" style={{ borderTop: 0 }}>
           <h4>Whole page</h4>
-          <Threads data={data} blockId={null} reload={reload} showResolved={showResolved} />
+          <Threads data={data} blockId={null} reload={reload} showResolved={showResolved} people={people} me={me} />
         </div>
         {blockIds.map((id) => (
           <div key={id} className="panel-section" ref={id === focusBlockId ? focusRef : undefined}>
@@ -323,7 +412,7 @@ export function CommentsPanel({ data, reload, selectBlock, highlight, focusBlock
               <Icon name="chevron-right" size={12} />
               {labelOf(id)}
             </button>
-            <Threads data={data} blockId={id} reload={reload} showResolved={showResolved} highlight={highlight} />
+            <Threads data={data} blockId={id} reload={reload} showResolved={showResolved} highlight={highlight} people={people} me={me} />
           </div>
         ))}
       </div>

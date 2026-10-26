@@ -63,6 +63,8 @@ export interface BlockVersion {
   rationale: string;
   createdAt: string;
   source: Source;
+  // Who should look at or act on this alternative, if anyone.
+  assignee: string | null;
 }
 
 export interface Selection {
@@ -86,6 +88,7 @@ export interface Comment {
   body: string;
   createdAt: string;
   resolvedAt: string | null;
+  assignee: string | null;
 }
 
 export interface PageVersion {
