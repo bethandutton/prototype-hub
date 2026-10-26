@@ -9,8 +9,16 @@ A local-first Mac app where designers keep AI-built HTML prototypes, review them
 - `electron/` is the Mac shell: it starts the server and opens a window on it. Folder picking and "show in Finder" come from here.
 - `src/` is the React app: the file browser, the prototype viewer with viewports and full preview, and the Comments, Versions, Insights and Details panels.
 - `public/frame-helper.js` runs inside every prototype on the stage. It reports hovers and clicks, previews alternatives in place and draws comment pins. The prototype's own code is never changed.
-- `skill/SKILL.md` is the skill agents are given: load the design library first, keep block ids, ask why before every change, save the answer with the version.
+- `plugin/` is a Claude Code plugin: the stdio MCP server (built into `plugin/server/`) and the skill in `plugin/skills/rehearsal/SKILL.md`, which tells agents to load the design library first, keep block ids, ask why before every change and save the answer with the version. The repository root is a plugin marketplace (`.claude-plugin/marketplace.json`), so `claude plugin marketplace add <this repo>` then `claude plugin install rehearsal@rehearsal` installs it.
 - `demo/` is a seeded workspace with the five-headline scenario.
+
+## Connecting an agent
+
+"Connect your agent" in the app asks which client you use and sets it up with one button: Claude Code as a plugin (recommended) or as an MCP server with the skill copied alongside, Claude Desktop and Cursor by adding the server to their configuration files. It also shows the exact commands to do it by hand.
+
+## Chatting with Claude in the app
+
+The Claude button in the viewer opens a chat beside the stage. Each message runs your own Claude Code in print mode, resumed on the same session, with the Rehearsal MCP attached and the skill's rules as its instructions. It knows which prototype and block are on screen, asks why in one line, and proposes changes as alternatives you pick in the block panel. Claude Code has to be installed on the Mac.
 
 ## Blocks and the why
 
@@ -28,6 +36,8 @@ pnpm test           # data model tests
 
 `pnpm serve` runs the same server without Electron for use in an ordinary browser. `node --import tsx scripts/seed-demo.ts` registers the demo workspace and seeds the five headlines. `scripts/snap.cjs` drives the app offscreen and saves screenshots, which is how the viewer is checked without a person at the screen.
 
+`pnpm package` builds the app, renders the icon from the logo and produces unsigned DMG and zip files in `release/` for Apple silicon and Intel Macs. They are not notarised, so the first open needs a right-click and Open.
+
 ## Not built yet
 
-Supabase sync and live collaboration for Teams, Stripe billing and the pricing page, PostHog metrics in the Insights panel, and a signed, packaged build of the app.
+Supabase sync and live collaboration for Teams, Stripe billing and the pricing page, PostHog metrics in the Insights panel, and code signing and notarisation of the packaged build.
