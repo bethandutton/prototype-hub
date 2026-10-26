@@ -9,8 +9,9 @@ startAppServer({
   store: new Store(),
   uiDir: path.join(root, "dist"),
   publicDir: path.join(root, "public"),
-  skillFile: path.join(root, "skill", "SKILL.md"),
+  skillFile: path.join(root, "plugin", "skills", "rehearsal", "SKILL.md"),
   stdioEntry: path.join(root, "out", "stdio.cjs"),
+  repoRoot: path.resolve(root, ".."),
   port: Number(process.env.PORT) || undefined,
 }).then((s) => {
   console.log(`Rehearsal is at ${s.url} (MCP at ${s.url}/mcp)`);

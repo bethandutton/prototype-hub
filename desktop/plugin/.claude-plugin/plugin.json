@@ -1,0 +1,6 @@
+{
+  "name": "rehearsal",
+  "description": "Work on a designer's HTML prototypes in Rehearsal: read them, propose block versions with the reason behind each one, and leave comments. Connects to the Rehearsal MCP server on this Mac.",
+  "version": "0.1.0",
+  "author": { "name": "Bethan Dutton" }
+}

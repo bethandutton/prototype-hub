@@ -14,8 +14,9 @@ async function boot() {
     store: new Store(),
     uiDir: path.join(root, "dist"),
     publicDir: path.join(root, "public"),
-    skillFile: path.join(root, "skill", "SKILL.md"),
+    skillFile: path.join(root, "plugin", "skills", "rehearsal", "SKILL.md"),
     stdioEntry: path.join(root, "out", "stdio.cjs"),
+    repoRoot: path.resolve(root, ".."),
   });
 
   const win = new BrowserWindow({

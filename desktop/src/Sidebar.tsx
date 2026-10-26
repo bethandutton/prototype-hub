@@ -60,7 +60,10 @@ export function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="wordmark">Rehearsal</div>
+      <div className="wordmark">
+        <img src="/logo-mark.svg" alt="" width={16} height={16} />
+        Rehearsal
+      </div>
       <Menu
         trigger={() => (
           <button className="switcher">

@@ -26,8 +26,9 @@ app.whenReady().then(async () => {
     store: new Store(),
     uiDir: path.join(root, "dist"),
     publicDir: path.join(root, "public"),
-    skillFile: path.join(root, "skill", "SKILL.md"),
+    skillFile: path.join(root, "plugin", "skills", "rehearsal", "SKILL.md"),
     stdioEntry: path.join(root, "out", "stdio.cjs"),
+    repoRoot: path.resolve(root, ".."),
     port: 0,
   });
   const win = new BrowserWindow({ width: 1360, height: 880, show: false, webPreferences: { offscreen: true, preload: path.join(root, "out", "preload.cjs"), contextIsolation: true, sandbox: true } });

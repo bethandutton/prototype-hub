@@ -30,6 +30,7 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   file: <path d="M4 2h5l3 3v9H4V2zM9 2v3h3" />,
+  spark: <path d="M8 2.5l1.4 3.6L13 7.5l-3.6 1.4L8 12.5 6.6 8.9 3 7.5l3.6-1.4L8 2.5zM12.5 11l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4z" />,
 };
 
 export function Icon({ name, size = 16 }: { name: keyof typeof ICONS | string; size?: number }) {

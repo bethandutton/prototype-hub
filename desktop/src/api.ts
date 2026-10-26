@@ -25,8 +25,24 @@ export interface Connection {
   httpUrl: string;
   stdioCommand: string;
   skillFile: string;
+  repoRoot: string;
+  skillInstall: string;
   claude: { http: string; stdio: string };
   json: unknown;
+}
+
+export interface ConnectStatus {
+  claudeFound: boolean;
+  claudeCode: { plugin: boolean; mcp: boolean };
+  claudeDesktop: boolean;
+  cursor: boolean;
+  skill: boolean;
+}
+
+export interface SetupStep {
+  label: string;
+  ok: boolean;
+  detail: string;
 }
 
 async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
@@ -41,6 +57,8 @@ export const api = {
   setMe: (name: string) => call<{ name: string }>("PUT", "/api/me", { name }),
   connection: () => call<Connection>("GET", "/api/connection"),
   skill: () => call<{ file: string; content: string }>("GET", "/api/skill"),
+  connectStatus: () => call<ConnectStatus>("GET", "/api/connect/status"),
+  connectSetup: (client: string, method: string) => call<SetupStep[]>("POST", "/api/connect/setup", { client, method }),
 
   workspaces: () => call<Workspace[]>("GET", "/api/workspaces"),
   addWorkspace: (name: string, path: string) => call<Workspace>("POST", "/api/workspaces", { name, path }),

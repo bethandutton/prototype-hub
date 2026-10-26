@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rehearsal": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/stdio.cjs"]
+    }
+  }
+}

@@ -6,7 +6,9 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { Store } from "../core/store";
 import { injectHelper } from "../core/html";
 import { readDesignLibrary } from "../core/library";
-import { createMcpServer } from "./mcp";
+import { createMcpServer, INSTRUCTIONS } from "./mcp";
+import { connectStatus, setupClient, type Client, type Method } from "./connect";
+import { runAgent } from "./agent";
 import type { Mode, Prototype, ResourceLink } from "../core/types";
 
 // One local server does everything the app needs: the app's own API, the
@@ -59,6 +61,8 @@ export interface AppServerOptions {
   publicDir: string;
   skillFile: string;
   stdioEntry: string;
+  // The repository root, which doubles as the plugin marketplace.
+  repoRoot: string;
   port?: number;
 }
 
@@ -157,6 +161,8 @@ export async function startAppServer(opts: AppServerOptions): Promise<AppServer>
     httpUrl: `http://127.0.0.1:${port}/mcp`,
     stdioCommand: `node ${opts.stdioEntry}`,
     skillFile: opts.skillFile,
+    repoRoot: opts.repoRoot,
+    skillInstall: `mkdir -p ~/.claude/skills/rehearsal && cp "${opts.skillFile}" ~/.claude/skills/rehearsal/SKILL.md`,
     claude: {
       http: `claude mcp add --transport http rehearsal http://127.0.0.1:${port}/mcp`,
       stdio: `claude mcp add rehearsal -- node ${opts.stdioEntry}`,
@@ -175,6 +181,48 @@ export async function startAppServer(opts: AppServerOptions): Promise<AppServer>
       return json(res, 200, store.setSettings({ name: String(body.name ?? "").trim() }));
     }
     if (head === "connection") return json(res, 200, connectionInfo(port));
+    if (head === "connect" && id === "status") return json(res, 200, await connectStatus());
+    if (head === "connect" && id === "setup" && m === "POST") {
+      const body = await readJsonBody(req);
+      const steps = await setupClient(String(body.client) as Client, (String(body.method ?? "plugin") as Method), {
+        repoRoot: opts.repoRoot,
+        stdioEntry: opts.stdioEntry,
+        httpUrl: `http://127.0.0.1:${port}/mcp`,
+        skillFile: opts.skillFile,
+      });
+      return json(res, 200, steps);
+    }
+    if (head === "agent" && !id && m === "POST") {
+      const body = await readJsonBody(req);
+      const proto = findPrototype(String(body.prototypeId ?? ""));
+      if (!proto) throw new HttpError(404, "No such prototype.");
+      const blockId = body.blockId ? String(body.blockId) : null;
+      const block = blockId ? store.blockMap(proto).find((b) => b.id === blockId) : null;
+      const systemPrompt = [
+        INSTRUCTIONS,
+        "",
+        `You are chatting with ${store.me()} inside the Rehearsal app. Keep replies short and plain; they read them in a narrow panel.`,
+        `The prototype on screen is "${proto.title}" (prototypeId ${proto.id}, workspaceId ${proto.workspaceId}).`,
+        block ? `They have selected the block ${block.id} (${block.label}). Changes they ask for are about that block unless they say otherwise.` : "No block is selected.",
+        "Ask why in one line before building a change, unless they already said why. Then use propose_block_version (or update_prototype for page-wide changes) and say in one sentence what you proposed.",
+      ].join("\n");
+      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive" });
+      const emit = (e: unknown) => res.write(`data: ${JSON.stringify(e)}\n\n`);
+      const run = runAgent({
+        home: store.home,
+        httpUrl: `http://127.0.0.1:${port}/mcp`,
+        prompt: String(body.message ?? ""),
+        sessionId: body.sessionId ? String(body.sessionId) : null,
+        systemPrompt,
+        onEvent: (e) => {
+          emit(e);
+          if (e.type === "done" && !e.sessionId) res.end();
+        },
+      });
+      if (!run) return res.end();
+      req.on("close", () => run.process.kill());
+      return;
+    }
     if (head === "skill") return json(res, 200, { file: opts.skillFile, content: fs.readFileSync(opts.skillFile, "utf8") });
 
     if (head === "workspaces") {

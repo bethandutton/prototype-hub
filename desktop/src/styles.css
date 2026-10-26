@@ -363,13 +363,10 @@ button {
   letter-spacing: -0.02em;
 }
 
-.wordmark::before {
-  content: "";
-  width: 14px;
-  height: 14px;
+.wordmark img {
+  display: block;
   border-radius: 4px;
-  background: linear-gradient(135deg, #5b93ff, #2a66e6);
-  box-shadow: 0 1px 2px rgba(42, 102, 230, 0.35);
+  box-shadow: 0 1px 2px rgba(42, 102, 230, 0.3);
 }
 
 .switcher {
@@ -1364,4 +1361,223 @@ kbd {
   border: 1px solid var(--hair);
   border-radius: 4px;
   color: var(--muted);
+}
+
+/* Connect */
+
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--chrome);
+  border: 1px solid var(--hair);
+  gap: 2px;
+}
+
+.seg button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.seg button:hover {
+  color: var(--ink);
+}
+
+.seg button.on {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.seg.small button {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.connect-card {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--faint);
+  flex: none;
+}
+
+.status-dot.on {
+  background: #2fa66a;
+  box-shadow: 0 0 0 3px rgba(47, 166, 106, 0.18);
+}
+
+.setup-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--hair);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup-steps li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+}
+
+.setup-steps li.ok {
+  color: var(--ink);
+}
+
+.setup-steps li.ok svg {
+  color: #2fa66a;
+  margin-top: 3px;
+}
+
+.setup-steps li.bad svg {
+  color: var(--accent);
+  margin-top: 3px;
+}
+
+.manual summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.manual summary:hover {
+  color: var(--ink);
+}
+
+/* Agent panel */
+
+.agent-panel {
+  width: 380px;
+}
+
+.agent-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.agent-line {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.agent-line.me {
+  flex-direction: row-reverse;
+}
+
+.agent-line .avatar {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.avatar.claude {
+  background: linear-gradient(135deg, #5b93ff, #2a66e6);
+  color: #fff;
+}
+
+.bubble {
+  max-width: 85%;
+  padding: 8px 11px;
+  border-radius: 12px 12px 12px 3px;
+  background: var(--accent);
+  color: #fff;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-line.me .bubble {
+  border-radius: 12px 12px 3px 12px;
+}
+
+.bubble.agent {
+  background: var(--chrome);
+  color: var(--ink);
+  border-radius: 12px 12px 12px 3px;
+}
+
+.agent-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  color: var(--muted);
+  font-size: 11px;
+  align-self: flex-start;
+}
+
+.agent-tool svg {
+  color: #2fa66a;
+}
+
+.agent-note {
+  margin-left: 28px;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.typing {
+  display: inline-block;
+  width: 28px;
+  height: 8px;
+  background: radial-gradient(circle, var(--faint) 2px, transparent 2.5px) 0 0 / 10px 8px repeat-x;
+  animation: typing 1s linear infinite;
+}
+
+@keyframes typing {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.agent-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--hair);
+  background: var(--chrome);
+}
+
+.agent-compose .textarea {
+  min-height: 44px;
+}
+
+.agent-context {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--accent);
 }

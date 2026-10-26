@@ -1,0 +1,12 @@
+{
+  "name": "rehearsal",
+  "description": "Rehearsal for Mac: the plugin that connects an agent to your prototypes.",
+  "owner": { "name": "Bethan Dutton" },
+  "plugins": [
+    {
+      "name": "rehearsal",
+      "source": "./desktop/plugin",
+      "description": "Read prototypes, propose block versions with reasons, comment and assign, through the Rehearsal MCP server."
+    }
+  ]
+}

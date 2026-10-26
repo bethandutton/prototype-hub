@@ -3,6 +3,7 @@ import { api, timeAgo, type ChangeEvent, type PrototypeData } from "./api";
 import { FILL, VIEWPORTS, type Viewport } from "./viewports";
 import { Icon, Menu, ModeBadge } from "./ui";
 import { BlockPanel, CommentsPanel, DetailsPanel, InsightsPanel, VersionsPanel, type PanelProps } from "./Panels";
+import { AgentPanel } from "./AgentPanel";
 
 export type SelectedBlock = { id: string; tag: string; label: string; html: string };
 
@@ -25,7 +26,7 @@ function pinsFor(data: PrototypeData) {
     })),
   }));
 }
-type Panel = "block" | "comments" | "versions" | "insights" | "details" | null;
+type Panel = "block" | "comments" | "versions" | "insights" | "details" | "agent" | null;
 
 export function Viewer({
   id,
@@ -106,7 +107,7 @@ export function Viewer({
       if (msg.type === "select") {
         if (msg.block) {
           setSelected(msg.block);
-          setPanel("block");
+          setPanel((p) => (p === "agent" ? p : "block"));
         } else {
           setSelected(null);
           setPanel((p) => (p === "block" ? null : p));
@@ -324,6 +325,11 @@ export function Viewer({
           <button className={`icon-btn ${panel === "details" ? "on" : ""}`} title="Details" onClick={() => togglePanel("details")}>
             <Icon name="info" />
           </button>
+          <span className="sep" />
+          <button className={`btn small ${panel === "agent" ? "primary" : ""}`} onClick={() => togglePanel("agent")}>
+            <Icon name="spark" size={14} />
+            Claude
+          </button>
         </div>
       )}
 
@@ -361,6 +367,7 @@ export function Viewer({
         {!full && panel === "versions" && <VersionsPanel {...panelProps} />}
         {!full && panel === "insights" && <InsightsPanel {...panelProps} />}
         {!full && panel === "details" && <DetailsPanel {...panelProps} />}
+        {!full && panel === "agent" && <AgentPanel data={data} me={me} selected={selected} onClose={() => togglePanel("agent")} />}
       </div>
 
       {full && (

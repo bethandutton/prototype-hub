@@ -2,3 +2,4 @@ out/
 dist/
 release/
 node_modules/
+plugin/server/
