@@ -1,10 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type ChangeEvent, type PrototypeData } from "./api";
+import { api, timeAgo, type ChangeEvent, type PrototypeData } from "./api";
 import { FILL, VIEWPORTS, type Viewport } from "./viewports";
 import { Icon, Menu, ModeBadge } from "./ui";
 import { BlockPanel, CommentsPanel, DetailsPanel, InsightsPanel, VersionsPanel, type PanelProps } from "./Panels";
 
 export type SelectedBlock = { id: string; tag: string; label: string; html: string };
+
+// Open comment threads per block, with what the pin's hover card needs.
+function pinsFor(data: PrototypeData) {
+  const byBlock = new Map<string, PrototypeData["comments"]>();
+  for (const c of data.comments) {
+    if (!c.blockId || c.parentId || c.resolvedAt) continue;
+    byBlock.set(c.blockId, [...(byBlock.get(c.blockId) ?? []), c]);
+  }
+  return [...byBlock].map(([blockId, roots]) => ({
+    blockId,
+    count: roots.length,
+    label: data.blockMap.find((b) => b.id === blockId)?.label ?? "",
+    threads: roots.map((r) => ({
+      author: r.author,
+      body: r.body,
+      when: timeAgo(r.createdAt),
+      replies: data.comments.filter((c) => c.parentId === r.id).map((c) => ({ author: c.author, body: c.body, when: timeAgo(c.createdAt), replies: [] })),
+    })),
+  }));
+}
 type Panel = "block" | "comments" | "versions" | "insights" | "details" | null;
 
 export function Viewer({
@@ -33,6 +53,7 @@ export function Viewer({
   const [full, setFull] = useState(false);
   const [frameKey, setFrameKey] = useState(0);
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
+  const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const frame = useRef<HTMLIFrameElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -93,7 +114,8 @@ export function Viewer({
         const b = data?.blockMap.find((x) => x.id === msg.blockId);
         if (b) {
           setSelected({ id: b.id, tag: b.tag, label: b.label, html: "" });
-          setPanel("block");
+          setFocusBlockId(b.id);
+          setPanel("comments");
           post({ type: "select", blockId: b.id });
         }
       }
@@ -107,11 +129,7 @@ export function Viewer({
   useEffect(() => {
     if (!ready) return;
     post({ type: "mode", mode: full ? "live" : "select" });
-    if (data) {
-      const counts = new Map<string, number>();
-      for (const c of data.comments) if (c.blockId && !c.resolvedAt && !c.parentId) counts.set(c.blockId, (counts.get(c.blockId) ?? 0) + 1);
-      post({ type: "pins", pins: full ? [] : [...counts].map(([blockId, count]) => ({ blockId, count })) });
-    }
+    if (data) post({ type: "pins", pins: full ? [] : pinsFor(data) });
     if (selected && !full) post({ type: "select", blockId: selected.id });
     if (previewRef.current) post({ type: "preview", ...previewRef.current });
   }, [ready, data, full, selected, post]);
@@ -171,6 +189,7 @@ export function Viewer({
   );
 
   const togglePanel = (p: Panel) => {
+    setFocusBlockId(null);
     if (panel === p) {
       setPanel(null);
       if (p === "block") selectBlock(null);
@@ -207,6 +226,8 @@ export function Viewer({
     selected,
     selectBlock,
     preview,
+    highlight: (blockId) => post({ type: "highlight", blockId }),
+    focusBlockId,
     previewVersionId,
     previewVersion: (v) => {
       setPreviewVersionId(v);

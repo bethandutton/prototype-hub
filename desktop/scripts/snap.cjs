@@ -40,6 +40,10 @@ app.whenReady().then(async () => {
       if (step.wait) await sleep(step.wait);
       if (step.js) log.push(`[js] ${JSON.stringify(await win.webContents.executeJavaScript(step.js))}`);
       if (step.click) await win.webContents.executeJavaScript(`(function(){var el=[...document.querySelectorAll(${JSON.stringify(step.click)})].find(e=>!${JSON.stringify(step.text || "")}||e.textContent.trim().includes(${JSON.stringify(step.text || "")}));if(!el)return "missing: "+${JSON.stringify(step.click)};el.click();return "clicked"})()`).then((r) => log.push(`[click ${step.click}] ${r}`));
+      if (step.frameJs) {
+        const frame = win.webContents.mainFrame.frames[0];
+        log.push(`[frameJs] ${frame ? JSON.stringify(await frame.executeJavaScript(step.frameJs)) : "no frame"}`);
+      }
       if (step.frameClick) {
         const frame = win.webContents.mainFrame.frames[0];
         log.push(`[frameClick ${step.frameClick}] ${frame ? await frame.executeJavaScript(clickInFrame(step.frameClick)) : "no frame"}`);

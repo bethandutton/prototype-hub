@@ -839,6 +839,48 @@ button {
   flex-direction: column;
   min-height: 0;
   background: var(--paper);
+  animation: panel-in 0.18s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.alt-in {
+  animation: alt-in 0.16s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes alt-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel-section.flash {
+  animation: flash 1.2s ease-out;
+}
+
+@keyframes flash {
+  0% {
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 8px var(--accent-soft);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 8px transparent;
+  }
 }
 
 .panel-head {
@@ -982,6 +1024,11 @@ button {
 .comment {
   padding: 10px 0;
   border-top: 1px solid var(--hair);
+  transition: background 0.12s;
+}
+
+.comment:hover {
+  background: linear-gradient(90deg, transparent, var(--chrome) 20%, var(--chrome) 80%, transparent);
 }
 
 .comment:first-child {
@@ -1012,10 +1059,38 @@ button {
   color: var(--faint);
 }
 
+.resolved-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0;
+  padding: 2px 8px 2px 4px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--chrome);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.resolved-toggle:hover {
+  color: var(--ink);
+}
+
+.resolved-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #2fa66a;
+}
+
 .comment-actions {
   display: flex;
   gap: 10px;
   margin-top: 4px;
+}
+
+.comment-target:hover {
+  color: var(--accent);
 }
 
 .comment-target {
@@ -1036,6 +1111,45 @@ button {
   flex-direction: column;
   gap: 6px;
   padding: 10px 0;
+}
+
+/* Decisions */
+
+.decision {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--hair);
+  background: none;
+  text-align: left;
+  color: inherit;
+}
+
+.decision:first-of-type {
+  border-top: 0;
+}
+
+.decision-title {
+  font-weight: 500;
+  transition: color 0.12s;
+}
+
+.decision:hover .decision-title {
+  color: var(--accent);
+}
+
+.decision-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.decision-why {
+  margin-top: 4px;
+  color: var(--ink);
+  line-height: 1.45;
 }
 
 /* Timeline */
@@ -1104,7 +1218,7 @@ button {
 }
 
 .list-row:hover {
-  color: var(--ink);
+  color: var(--accent);
 }
 
 .list-row.on {

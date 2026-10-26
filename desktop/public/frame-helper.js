@@ -75,6 +75,81 @@
     return { x: r.left, y: r.top, width: r.width, height: r.height };
   }
 
+  var card = null;
+  var cardTimer = null;
+  var FONT = "-apple-system,system-ui,sans-serif";
+
+  function esc(text) {
+    return String(text).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function threadHtml(t, reply) {
+    return (
+      '<div style="padding:' + (reply ? "6px 0 0 14px" : "8px 0") + ';border-top:' + (reply ? "0" : "1px solid #ececea") + '">' +
+      '<div style="display:flex;gap:6px;align-items:baseline;margin-bottom:2px"><strong style="font-weight:600;color:#171717">' + esc(t.author) + "</strong>" +
+      '<span style="color:#9a9a97;font-size:11px">' + esc(t.when) + "</span></div>" +
+      '<div style="color:#171717;line-height:1.45">' + esc(t.body) + "</div>" +
+      (t.replies || []).map(function (r) { return threadHtml(r, true); }).join("") +
+      "</div>"
+    );
+  }
+
+  // The comment card: appears beside a pin on hover, easing in from the pin,
+  // and stays while the pointer is on the pin or the card itself.
+  function showCard(pin, dot) {
+    if (cardTimer) clearTimeout(cardTimer);
+    if (card && card.getAttribute("data-rh-for") === pin.blockId) return;
+    hideCard(true);
+    card = document.createElement("div");
+    card.setAttribute("data-rh-card", "");
+    card.setAttribute("data-rh-for", pin.blockId);
+    var threads = (pin.threads || []).slice(0, 3);
+    var more = (pin.threads || []).length - threads.length;
+    card.innerHTML =
+      '<div style="font:12px/1.4 ' + FONT + ';letter-spacing:-0.01em">' +
+      '<div style="font-size:11px;color:#6b6b6b;padding-bottom:4px">' + esc(pin.label || "Comment") + "</div>" +
+      threads.map(function (t) { return threadHtml(t, false); }).join("") +
+      (more > 0 ? '<div style="color:#2f6ff0;font-size:11px;padding-top:6px">' + more + " more in the panel</div>" : "") +
+      "</div>";
+    var r = dot.getBoundingClientRect();
+    var width = 260;
+    var left = r.right + window.scrollX + 8;
+    if (left + width > window.scrollX + document.documentElement.clientWidth - 8) left = r.left + window.scrollX - width - 8;
+    card.style.cssText =
+      "position:absolute;pointer-events:auto;width:" + width + "px;max-height:280px;overflow:auto;padding:10px 12px;border-radius:10px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.08),0 16px 40px rgba(0,0,0,.14);left:" +
+      left + "px;top:" + (r.top + window.scrollY - 6) + "px;opacity:0;transform:translate(-6px,2px) scale(.96);transform-origin:left top;transition:opacity .18s cubic-bezier(.2,.7,.2,1),transform .22s cubic-bezier(.2,.7,.2,1)";
+    card.addEventListener("mouseenter", function () { if (cardTimer) clearTimeout(cardTimer); });
+    card.addEventListener("mouseleave", function () { scheduleHide(); });
+    card.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); send({ type: "pin", blockId: pin.blockId }); });
+    layer.appendChild(card);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (card) card.style.opacity = "1";
+        if (card) card.style.transform = "none";
+      });
+    });
+  }
+
+  function scheduleHide() {
+    if (cardTimer) clearTimeout(cardTimer);
+    cardTimer = setTimeout(function () { hideCard(false); }, 140);
+  }
+
+  function hideCard(now) {
+    if (!card) return;
+    var el = card;
+    card = null;
+    if (now) {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      return;
+    }
+    el.style.opacity = "0";
+    el.style.transform = "translate(-6px,2px) scale(.96)";
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 220);
+  }
+
   function drawPins() {
     layer.querySelectorAll("[data-rh-pin]").forEach(function (p) {
       p.parentNode.removeChild(p);
@@ -87,11 +162,21 @@
       dot.setAttribute("data-rh-pin", pin.blockId);
       dot.textContent = String(pin.count);
       dot.style.cssText =
-        "position:absolute;pointer-events:auto;cursor:pointer;min-width:20px;height:20px;padding:0 6px;border-radius:10px 10px 10px 2px;background:#2f6ff0;color:#fff;font:600 11px/20px -apple-system,system-ui,sans-serif;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.25);left:" +
+        "position:absolute;pointer-events:auto;cursor:pointer;min-width:20px;height:20px;padding:0 6px;border-radius:10px 10px 10px 2px;background:#2f6ff0;color:#fff;font:600 11px/20px " + FONT + ";text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s cubic-bezier(.2,.7,.2,1),box-shadow .15s;left:" +
         (r.right + window.scrollX - 10) +
         "px;top:" +
         (r.top + window.scrollY - 10) +
         "px";
+      dot.addEventListener("mouseenter", function () {
+        dot.style.transform = "scale(1.12)";
+        dot.style.boxShadow = "0 2px 8px rgba(47,111,240,.4)";
+        showCard(pin, dot);
+      });
+      dot.addEventListener("mouseleave", function () {
+        dot.style.transform = "";
+        dot.style.boxShadow = "0 1px 2px rgba(0,0,0,.25)";
+        scheduleHide();
+      });
       dot.addEventListener("click", function (e) {
         e.stopPropagation();
         e.preventDefault();
@@ -99,6 +184,20 @@
       });
       layer.appendChild(dot);
     });
+  }
+
+  // A swapped-in alternative eases in rather than popping.
+  function fadeIn(el) {
+    var had = el.style.transition;
+    el.style.transition = "none";
+    el.style.opacity = "0";
+    void el.offsetWidth;
+    el.style.transition = "opacity .2s ease-out";
+    el.style.opacity = "1";
+    setTimeout(function () {
+      el.style.transition = had;
+      el.style.opacity = "";
+    }, 220);
   }
 
   function refresh() {
@@ -127,6 +226,8 @@
     "click",
     function (e) {
       if (mode !== "select") return;
+      // Our own pins and cards handle their clicks themselves.
+      if (e.target && ours(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
       var el = blockOf(document.elementFromPoint(e.clientX, e.clientY));
@@ -155,6 +256,7 @@
   window.addEventListener("message", function (e) {
     var msg = e.data;
     if (!msg || !msg.rehearsal) return;
+    if (msg.type === "mode" || msg.type === "select" || msg.type === "highlight") hideCard(true);
     if (msg.type === "mode") {
       mode = msg.mode;
       hover.style.display = "none";
@@ -175,6 +277,7 @@
       if (!(msg.blockId in originals)) originals[msg.blockId] = target.outerHTML;
       target.outerHTML = msg.content;
       var next = byId(msg.blockId);
+      if (next) fadeIn(next);
       if (!next) {
         // The alternative lost its id; put it back so the swap stays reversible.
         var tmp = document.createElement("div");
@@ -185,13 +288,22 @@
     }
     if (msg.type === "restore") {
       var current = byId(msg.blockId);
-      if (current && originals[msg.blockId]) current.outerHTML = originals[msg.blockId];
+      if (current && originals[msg.blockId]) {
+        current.outerHTML = originals[msg.blockId];
+        var back = byId(msg.blockId);
+        if (back) fadeIn(back);
+      }
       delete originals[msg.blockId];
       setTimeout(refresh, 0);
     }
     if (msg.type === "pins") {
       pins = msg.pins || [];
+      hideCard(true);
       drawPins();
+    }
+    if (msg.type === "highlight") {
+      var h = msg.blockId ? byId(msg.blockId) : null;
+      place(hover, h);
     }
   });
 

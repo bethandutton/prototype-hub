@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, timeAgo, type Comment, type Mode, type PrototypeData, type ResourceLink } from "./api";
 import { Field, Icon, initials } from "./ui";
 import type { SelectedBlock } from "./Viewer";
@@ -10,6 +10,9 @@ export interface PanelProps {
   selected: SelectedBlock | null;
   selectBlock: (id: string | null, scroll?: boolean) => void;
   preview: (blockId: string, content: string | null) => void;
+  highlight: (blockId: string | null) => void;
+  // A block the comments panel should scroll to and flash, after a pin was clicked.
+  focusBlockId?: string | null;
   previewVersionId: string | null;
   previewVersion: (versionId: string | null) => void;
   onClose: () => void;
@@ -31,7 +34,7 @@ function PanelHead({ title, onClose, children }: { title: string; onClose: () =>
 
 // The block panel: flick through a block's alternatives with their reasons,
 // pick a favourite, and read or leave comments on that block.
-export function BlockPanel({ data, selected, preview, reload, onClose }: PanelProps) {
+export function BlockPanel({ data, selected, preview, highlight, reload, onClose }: PanelProps) {
   const block = data.blocks.find((b) => b.id === selected!.id);
   const label = data.blockMap.find((b) => b.id === selected!.id)?.label ?? block?.label ?? selected!.label;
   const versions = block?.versions ?? [];
@@ -106,7 +109,7 @@ export function BlockPanel({ data, selected, preview, reload, onClose }: PanelPr
               </button>
             </div>
             {current && (
-              <div className={`alt-card ${index === liveIndex ? "live" : ""}`}>
+              <div key={current.id} className={`alt-card alt-in ${index === liveIndex ? "live" : ""}`}>
                 <div className="alt-meta">
                   <span className="row">
                     <span className="avatar light">{initials(current.author)}</span>
@@ -166,22 +169,40 @@ export function BlockPanel({ data, selected, preview, reload, onClose }: PanelPr
 
         <div className="panel-section">
           <h4>Comments on this block</h4>
-          <Threads data={data} blockId={blockId} reload={reload} />
+          <Threads data={data} blockId={blockId} reload={reload} highlight={highlight} />
         </div>
       </div>
     </aside>
   );
 }
 
-function Threads({ data, blockId, reload, showResolved = false }: { data: PrototypeData; blockId: string | null; reload: () => Promise<void>; showResolved?: boolean }) {
+function Threads({
+  data,
+  blockId,
+  reload,
+  showResolved = false,
+  highlight,
+}: {
+  data: PrototypeData;
+  blockId: string | null;
+  reload: () => Promise<void>;
+  showResolved?: boolean;
+  highlight?: (blockId: string | null) => void;
+}) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
-  const roots = data.comments.filter((c) => !c.parentId && (c.blockId ?? null) === blockId && (showResolved || !c.resolvedAt));
+  const [open, setOpen] = useState(showResolved);
+  const all = data.comments.filter((c) => !c.parentId && (c.blockId ?? null) === blockId);
+  const roots = all.filter((c) => !c.resolvedAt);
+  const resolved = all.filter((c) => c.resolvedAt);
   const replies = (id: string) => data.comments.filter((c) => c.parentId === id);
   const toggle = (c: Comment) => api.resolveComment(data.prototype.id, c.id, !c.resolvedAt).then(reload);
-  return (
-    <div>
-      {roots.map((c) => (
-        <div key={c.id} className={`comment ${c.resolvedAt ? "resolved" : ""}`}>
+  const thread = (c: Comment) => (
+        <div
+          key={c.id}
+          className={`comment ${c.resolvedAt ? "resolved" : ""}`}
+          onMouseEnter={() => blockId && highlight?.(blockId)}
+          onMouseLeave={() => blockId && highlight?.(null)}
+        >
           <CommentRow c={c} />
           <div className="comment-actions">
             <button className="link small" onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}>
@@ -208,7 +229,17 @@ function Threads({ data, blockId, reload, showResolved = false }: { data: Protot
             />
           )}
         </div>
-      ))}
+      );
+  return (
+    <div>
+      {roots.map(thread)}
+      {resolved.length > 0 && (
+        <button className="resolved-toggle" onClick={() => setOpen((o) => !o)}>
+          <Icon name={open ? "chevron-down" : "chevron-right"} size={12} />
+          {resolved.length} resolved
+        </button>
+      )}
+      {open && resolved.map(thread)}
       <Compose placeholder={blockId ? "Comment on this block" : "Comment on the whole page"} onSend={(body) => api.addComment(data.prototype.id, { body, blockId }).then(reload)} />
     </div>
   );
@@ -220,7 +251,11 @@ function CommentRow({ c }: { c: Comment }) {
       <div className="comment-meta">
         <strong>{c.author}</strong>
         <span>{timeAgo(c.createdAt)}</span>
-        {c.resolvedAt && <span>· resolved</span>}
+        {c.resolvedAt && (
+          <span className="resolved-mark">
+            <Icon name="check" size={11} /> resolved
+          </span>
+        )}
       </div>
       <div className="comment-body">{c.body}</div>
     </>
@@ -262,29 +297,33 @@ function Compose({ placeholder, onSend }: { placeholder: string; onSend: (body: 
   );
 }
 
-export function CommentsPanel({ data, reload, selectBlock, onClose }: PanelProps) {
-  const [showResolved, setShowResolved] = useState(false);
+export function CommentsPanel({ data, reload, selectBlock, highlight, focusBlockId, onClose }: PanelProps) {
+  const showResolved = false;
+  const focusRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusBlockId || !focusRef.current) return;
+    focusRef.current.scrollIntoView({ block: "start", behavior: "smooth" });
+    focusRef.current.classList.remove("flash");
+    void focusRef.current.offsetWidth;
+    focusRef.current.classList.add("flash");
+  }, [focusBlockId]);
   const blockIds = [...new Set(data.comments.filter((c) => c.blockId && !c.parentId && (showResolved || !c.resolvedAt)).map((c) => c.blockId!))];
   const labelOf = (id: string) => data.blockMap.find((b) => b.id === id)?.label ?? data.blocks.find((b) => b.id === id)?.label ?? id;
   return (
     <aside className="panel">
-      <PanelHead title="Comments" onClose={onClose}>
-        <button className={`btn small quiet ${showResolved ? "on" : ""}`} onClick={() => setShowResolved((s) => !s)}>
-          Resolved
-        </button>
-      </PanelHead>
+      <PanelHead title="Comments" onClose={onClose} />
       <div className="panel-body">
         <div className="panel-section" style={{ borderTop: 0 }}>
           <h4>Whole page</h4>
           <Threads data={data} blockId={null} reload={reload} showResolved={showResolved} />
         </div>
         {blockIds.map((id) => (
-          <div key={id} className="panel-section">
-            <button className="comment-target" onClick={() => selectBlock(id)}>
+          <div key={id} className="panel-section" ref={id === focusBlockId ? focusRef : undefined}>
+            <button className="comment-target" onClick={() => selectBlock(id)} onMouseEnter={() => highlight(id)} onMouseLeave={() => highlight(null)}>
               <Icon name="chevron-right" size={12} />
               {labelOf(id)}
             </button>
-            <Threads data={data} blockId={id} reload={reload} showResolved={showResolved} />
+            <Threads data={data} blockId={id} reload={reload} showResolved={showResolved} highlight={highlight} />
           </div>
         ))}
       </div>
@@ -292,7 +331,7 @@ export function CommentsPanel({ data, reload, selectBlock, onClose }: PanelProps
   );
 }
 
-export function VersionsPanel({ data, selectBlock, previewVersionId, previewVersion, onClose }: PanelProps) {
+export function VersionsPanel({ data, selectBlock, highlight, previewVersionId, previewVersion, onClose }: PanelProps) {
   return (
     <aside className="panel">
       <PanelHead title="Versions" onClose={onClose} />
@@ -321,7 +360,7 @@ export function VersionsPanel({ data, selectBlock, previewVersionId, previewVers
           <h4>Blocks with alternatives</h4>
           {data.blocks.length === 0 && <p className="muted small">None yet. Click any element to see or add alternatives.</p>}
           {data.blocks.map((b) => (
-            <button key={b.id} className="list-row" onClick={() => selectBlock(b.id)}>
+            <button key={b.id} className="list-row" onClick={() => selectBlock(b.id)} onMouseEnter={() => highlight(b.id)} onMouseLeave={() => highlight(null)}>
               <span className="truncate">{b.label}</span>
               <span className="muted small">{b.versions.length}</span>
             </button>
@@ -332,8 +371,7 @@ export function VersionsPanel({ data, selectBlock, previewVersionId, previewVers
   );
 }
 
-export function InsightsPanel({ data, reload, selectBlock, onClose }: PanelProps) {
-  const [query, setQuery] = useState("");
+export function InsightsPanel({ data, selectBlock, highlight, onClose }: PanelProps) {
   return (
     <aside className="panel">
       <PanelHead title="Insights" onClose={onClose} />
@@ -341,47 +379,21 @@ export function InsightsPanel({ data, reload, selectBlock, onClose }: PanelProps
         <div className="panel-section" style={{ borderTop: 0 }}>
           <h4>Decisions</h4>
           {data.decisions.length === 0 && <p className="muted small">No decisions yet. When you pick a favourite alternative, it is recorded here with its reason.</p>}
-          <div className="timeline">
-            {data.decisions.map((d) => (
-              <div key={`${d.blockId}-${d.at}`} className="tl-item pick">
-                <span className="mark" />
-                <div>
-                  <button onClick={() => selectBlock(d.blockId)}>{d.blockLabel}</button>
-                  <div className="when">
-                    {d.by} picked {d.versionAuthor === "Original" ? "the original" : `${d.versionAuthor}'s version`} · {timeAgo(d.at)}
-                  </div>
-                  {d.rationale && <p className="small">{d.rationale}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="panel-section">
-          <h4>Analytics</h4>
-          {data.insights.map((l) => (
-            <div key={l.id} className="list-row">
-              <span className="truncate">{l.query}</span>
-              <span className="muted small">PostHog</span>
-            </div>
+          {data.decisions.map((d) => (
+            <button
+              key={`${d.blockId}-${d.at}`}
+              className="decision"
+              onClick={() => selectBlock(d.blockId)}
+              onMouseEnter={() => highlight(d.blockId)}
+              onMouseLeave={() => highlight(null)}
+            >
+              <span className="decision-title truncate">{d.blockLabel}</span>
+              <span className="decision-meta">
+                {d.by} picked {d.versionAuthor === "Original" ? "the original" : `${d.versionAuthor}'s version`} · {timeAgo(d.at)}
+              </span>
+              {d.rationale && <span className="decision-why">{d.rationale}</span>}
+            </button>
           ))}
-          <form
-            className="compose"
-            onSubmit={(e) => {
-              e.preventDefault();
-              api.addInsight(data.prototype.id, { query }).then(() => {
-                setQuery("");
-                return reload();
-              });
-            }}
-          >
-            <input className="input" placeholder="PostHog insight URL or event name" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <div className="row" style={{ justifyContent: "space-between" }}>
-              <span className="hint">Metrics from PostHog arrive in a later version. The link is kept with the prototype now.</span>
-              <button className="btn small" disabled={!query.trim()}>
-                Link
-              </button>
-            </div>
-          </form>
         </div>
       </div>
     </aside>
