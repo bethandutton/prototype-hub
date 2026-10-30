@@ -277,7 +277,7 @@ const handler = createMcpHandler(
       },
     );
   },
-  { serverInfo: { name: "rehearsal", version: "0.1.0" }, instructions },
+  { serverInfo: { name: "rehearsal", version: "0.1.0" }, instructions, maxSubscriptions: 0 },
 );
 
 const authed = withMcpAuth(
@@ -292,4 +292,11 @@ const authed = withMcpAuth(
   { required: true },
 );
 
-export { authed as GET, authed as POST, authed as DELETE };
+export const maxDuration = 60;
+
+// An open GET stream keeps a function (and its memory) running until it times out, then the client reconnects.
+function GET() {
+  return new Response(null, { status: 405, headers: { allow: "POST, DELETE" } });
+}
+
+export { GET, authed as POST, authed as DELETE };
